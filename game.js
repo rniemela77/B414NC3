@@ -130,7 +130,7 @@ class Demo extends Phaser.Scene {
         // });
 
 
-        // every 50ms,
+        // every 50ms, base shoots
         this.time.addEvent({
             delay: 1000,
             callback: () => {
@@ -147,15 +147,15 @@ class Demo extends Phaser.Scene {
 
                         // fire projectile
                         const projectile = this.physics.add.image(this.p1base.x, this.p1base.y, 'player');
-                        projectile.setDisplaySize(40, 40);
-                        projectile.setBodySize(80, 80);
-                        projectile.setCollideWorldBounds(true);
+                        projectile.body.setSize(10, 10);
+                        projectile.body.setCircle(5);
+                        projectile.setTint(0xff0000);
 
                         // fire at closest unit
                         this.physics.moveToObject(projectile, unit, 400);
 
                         // if collides
-                        this.physics.add.collider(projectile, this.p1units, (projectile, unit) => {
+                        this.physics.add.collider(projectile, this.p2units, (projectile, unit) => {
                             projectile.destroy();
                             unit.health -= this.p1base.attack;
                         });
@@ -201,17 +201,29 @@ class Demo extends Phaser.Scene {
 
     createUnit(playerN) {
         const unit = this.physics.add.image(0, 0, 'player');
-        unit.body.setSize(400, 400);
-        unit.body.setCircle(200);
+        unit.body.setSize(40, 40);
+        unit.body.setCircle(20);
+
+
+
+        unit.isDestroyable = true;
+        unit.health = 100;
+        unit.attack = 10;
+        unit.attackSpeed = 400;
+        unit.range = 100;
         
         unit.x = playerN % 2 === 0 ? this.p1base.x : this.p2base.x;
         unit.y = playerN % 2 === 0 ? this.p1base.y : this.p2base.y;
 
         // range
-        unit.range = this.add.circle(unit.x, unit.y, 500, this.colors.border);
-        unit.range.setAlpha(0.1);
-        unit.range.setStrokeStyle(2, 0x0000ff, 0.2);
-        unit.range.setFillStyle(0x0000ff, 0.03);
+        const rangeCircle = this.add.circle(unit.x, unit.y, unit.range, this.colors.border);
+        rangeCircle.setAlpha(0.1);
+        rangeCircle.setStrokeStyle(2, 0x0000ff, 0.2);
+        rangeCircle.setFillStyle(0x0000ff, 0.03);
+
+
+        // physics
+        this.physics.add.existing(rangeCircle);
 
         // healthbar
         unit.healthbar = this.add.graphics();
@@ -223,8 +235,8 @@ class Demo extends Phaser.Scene {
         this.events.on('update', () => {
             // if active
             if (unit.active) {
-                unit.range.x = unit.x;
-                unit.range.y = unit.y;
+                rangeCircle.x = unit.x;
+                rangeCircle.y = unit.y;
                 unitHealthbar.clear();
                 unitHealthbar.fillStyle(0x00ff00, 1);
                 unitHealthbar.fillRect(unit.x, unit.y - 50, unit.health, 10);
@@ -246,15 +258,9 @@ class Demo extends Phaser.Scene {
         unit.setVelocityX(speed * direction + Math.random() * 300 - 150);
         unit.setVelocityY(speed * direction);
 
-        unit.isDestroyable = true;
-        unit.health = 100;
-        unit.attack = 10;
-        unit.attackSpeed = 400;
-
-        console.log(this.p1units.getLength(), this.p2units.getLength());
-
         // collision
-        const collider = this.physics.add.collider(this.p2units, this.p1units, (unit1, unit2) => {
+        const collider = this.physics.add.collider(rangeCircle, this.p1units, (unit1, unit2) => {
+            unit1 = unit;
             unit1.setVelocityX(0);
             unit1.setVelocityY(0);
             unit2.setVelocityX(0);
@@ -268,7 +274,7 @@ class Demo extends Phaser.Scene {
                 delay: unit1.attackSpeed,
                 callback: () => {
                     if (unit1.health > 0) {
-                        unit1.health -= unit2.attack;
+                        // unit1.health -= unit2.attack;
                     }
                     // if (unit2.health > 0) {
                     // unit2.health -= unit1.attack;
