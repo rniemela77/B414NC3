@@ -14,14 +14,14 @@ class Demo extends Phaser.Scene {
         this.p1units = this.physics.add.group();
         this.p2units = this.physics.add.group();
 
-        const baseStyles = {
+        this.baseStyles = {
             distance: config.width / 3,
             radius: config.width / 30,
             range: config.width / 5,
             attack: Math.random() * 100,
         }
 
-        const bases = [
+        this.bases = [
             {
                 x: this.game.config.width / 3,
                 y: this.game.config.height / 3,
@@ -36,6 +36,26 @@ class Demo extends Phaser.Scene {
             }
         ]
 
+        // create bases
+        this.createBases();
+
+        // base/turret attack
+        this.makeTurretAttack();
+
+        // periodically spawn units
+        this.time.addEvent({
+            delay: 3000,
+            callback: () => {
+                this.createUnit(1);
+            },
+            loop: true
+        });
+
+        this.createButtons();
+    }
+
+    createBases() {
+        const { bases, baseStyles } = this;
         bases.forEach((base) => {
             const art = this.add.circle(base.x, base.y, baseStyles.radius, this.colors.border);
             const baseUnit = this.physics.add.image(base.x, base.y, 'player');
@@ -52,22 +72,21 @@ class Demo extends Phaser.Scene {
             }
             base.unitGroup = base.p === 1 ? this.p1units : this.p2units;
 
-            
-
-
             // range.setAlpha(0.1);
             range.setStrokeStyle(2, 0x0000ff, 0.2);
             // fill alpha
             range.setFillStyle(0x0000ff, 0.03);
 
             baseUnit.health = 500;
-            baseUnit.attack = Math.random() * 100;
+            baseUnit.attack = 90;
+            baseUnit.attackSpeed = 500;
             baseUnit.body.setSize(baseStyles.radius * 2, baseStyles.radius * 2);
             baseUnit.body.setCircle(baseStyles.radius);
             base.unitGroup.add(baseUnit);
 
             baseUnit.healthbar = this.add.graphics();
             const baseUnitHealthbar = baseUnit.healthbar;
+
             this.events.on('update', () => {
                 if (baseUnit.active) {
                     baseUnitHealthbar.clear();
@@ -79,60 +98,11 @@ class Demo extends Phaser.Scene {
                 }
             });
         });
+    }
 
-
-        // // circle base
-        // const p1base = this.add.circle(this.game.config.width / 3, this.game.config.height / 3, baseStyles.radius, this.colors.border);
-        // const p2base = this.add.circle(this.game.config.width / 1.5, this.game.config.height / 1.5, baseStyles.radius, this.colors.border);
-        // // physics
-        // this.p1base = this.physics.add.image(this.game.config.width / 3, this.game.config.height / 3, 'player');
-        // this.p2base = this.physics.add.image(this.game.config.width / 1.5, this.game.config.height / 1.5, 'player');
-
-        // // physics hitbox larger
-        // this.p1base.body.setSize(200, 200);
-        // this.p2base.body.setSize(200, 200);
-
-        // this.p1base.health = 1000;
-        // this.p2base.health = 1000;
-        // this.p1base.attack = Math.random() * 100;
-        // this.p2base.attack = Math.random() * 100;
-
-        // this.p2units.add(this.p1base);
-        // this.p1units.add(this.p2base);
-
-        // // on update healthbar
-        // this.p1base.healthbar = this.add.graphics();
-        // this.p2base.healthbar = this.add.graphics();
-        // this.p1base.healthbar.fillStyle(0x00ff00, 1);
-        // this.p2base.healthbar.fillStyle(0x00ff00, 1);
-        // this.p1base.healthbar.fillRect(this.p1base.x, this.p1base.y - 50, 100, 10);
-        // this.p2base.healthbar.fillRect(this.p2base.x, this.p2base.y - 50, 100, 10);
-        // const p1baseHealthbar = this.p1base.healthbar;
-        // const p2baseHealthbar = this.p2base.healthbar;
-        // this.events.on('update', () => {
-        //     // if active
-        //     if (this.p1base.active) {
-        //         p1baseHealthbar.clear();
-        //         p1baseHealthbar.fillStyle(0x00ff00, 1);
-        //         p1baseHealthbar.fillRect(this.p1base.x - this.p2base.health / 4, this.p1base.y - 50, this.p1base.health, 10);
-        //         p1baseHealthbar.fillStyle(0xff0000, 1);
-        //     } else {
-        //         p1baseHealthbar.clear();
-        //     }
-        //     if (this.p2base.active) {
-        //         p2baseHealthbar.clear();
-        //         p2baseHealthbar.fillStyle(0x00ff00, 1);
-        //         p2baseHealthbar.fillRect(this.p2base.x - this.p2base.health / 1.5, this.p2base.y + 50, this.p2base.health, 10);
-        //         p2baseHealthbar.fillStyle(0xff0000, 1);
-        //     } else {
-        //         p2baseHealthbar.clear();
-        //     }
-        // });
-
-
-        // every 50ms, base shoots
+    makeTurretAttack() {
         this.time.addEvent({
-            delay: 1000,
+            delay: this.p2base.attackSpeed,
             callback: () => {
                 // find closest p2 unit near p1 base
                 let closestUnit = null;
@@ -164,26 +134,9 @@ class Demo extends Phaser.Scene {
             },
             loop: true
         });
+    }
 
-
-
-
-        // every 2 sec
-        this.time.addEvent({
-            delay: 3000,
-            callback: () => {
-                // if (Math.random() > 0.9) {
-                this.createUnit(1);
-                // } else {
-                // this.createUnit(2);
-                // }
-            },
-            loop: true
-        });
-
-
-
-        // create buttons at bottom of screen
+    createButtons() {
         const button = this.add.text(this.width / 2, this.height - 200, 'Spawn Unit', { fill: '#00ff00' });
         button.setBackgroundColor('#000000');
         button.setPadding(100);
@@ -196,36 +149,55 @@ class Demo extends Phaser.Scene {
         button.y = game.config.height - 300;
         button.setScrollFactor(0);
         button.setDepth(10);
-
     }
 
     createUnit(playerN) {
         const unit = this.physics.add.image(0, 0, 'player');
+
+        // GROUP
+        if (playerN === 1) {
+            this.p2units.add(unit);
+        } else {
+            this.p1units.add(unit);
+        }
+
+        // HITBOX
         unit.body.setSize(40, 40);
         unit.body.setCircle(20);
 
-
-
+        // STATS
         unit.isDestroyable = true;
         unit.health = 100;
         unit.attack = 10;
         unit.attackSpeed = 400;
-        unit.range = 100;
-        
+        unit.range = 300;
+
+        // SPAN
         unit.x = playerN % 2 === 0 ? this.p1base.x : this.p2base.x;
         unit.y = playerN % 2 === 0 ? this.p1base.y : this.p2base.y;
 
-        // range
-        const rangeCircle = this.add.circle(unit.x, unit.y, unit.range, this.colors.border);
-        rangeCircle.setAlpha(0.1);
-        rangeCircle.setStrokeStyle(2, 0x0000ff, 0.2);
-        rangeCircle.setFillStyle(0x0000ff, 0.03);
+        // RANGE
+        const rangeCircle = this.makeRangeCircle(unit);
 
+        // HEALTHBAR
+        this.giveUnitHealthbar(unit, rangeCircle, playerN);
 
-        // physics
+        // MOVEMENT
+        this.unitCanMove(playerN, unit);
+
+        // Collision
+        this.unitCanAttack(rangeCircle, unit);
+    }
+
+    makeRangeCircle(unit) {
+        const rangeCircle = this.physics.add.image(0, 0, 'player');
+        rangeCircle.body.setSize(unit.range * 2, unit.range * 2);
+        rangeCircle.body.setCircle(unit.range);
         this.physics.add.existing(rangeCircle);
+        return rangeCircle;
+    }
 
-        // healthbar
+    giveUnitHealthbar(unit, rangeCircle) {
         unit.healthbar = this.add.graphics();
         unit.healthbar.fillStyle(0x00ff00, 1);
         unit.healthbar.fillRect(unit.x, unit.y - 50, 100, 10);
@@ -233,7 +205,12 @@ class Demo extends Phaser.Scene {
         unitHealthbar.fillStyle(0x00ff00, 1);
         unitHealthbar.fillRect(unit.x, unit.y - 50, 100, 10);
         this.events.on('update', () => {
-            // if active
+            // destroy unit
+            if (unit.health < 0) {
+                unit.destroy();
+                rangeCircle.destroy();
+                unit.health = 0;
+            }
             if (unit.active) {
                 rangeCircle.x = unit.x;
                 rangeCircle.y = unit.y;
@@ -245,47 +222,45 @@ class Demo extends Phaser.Scene {
                 unitHealthbar.clear();
             }
         });
+    }
 
-        // add to player group
-        if (playerN === 1) {
-            this.p2units.add(unit);
-        } else {
-            this.p1units.add(unit);
-        }
-        // send to top left or bottom right
-        const direction = playerN % 2 === 0 ? 1 : -1;
-        const speed = 600;
-        unit.setVelocityX(speed * direction + Math.random() * 300 - 150);
-        unit.setVelocityY(speed * direction);
+    unitCanMove(playerN, unit) {
+        const direction = playerN % 2 === 0 ? -1 : 1;
+        const speed = 100;
+        const angleToBase = Phaser.Math.Angle.Between(unit.x, unit.y, this.p1base.x, this.p1base.y);
+        unit.setVelocityX(speed * Math.cos(angleToBase) * direction);
+        unit.setVelocityY(speed * Math.sin(angleToBase) * direction);
 
-        // collision
-        const collider = this.physics.add.collider(rangeCircle, this.p1units, (unit1, unit2) => {
-            unit1 = unit;
-            unit1.setVelocityX(0);
-            unit1.setVelocityY(0);
-            unit2.setVelocityX(0);
-            unit2.setVelocityY(0);
+        this.events.on('update', () => {
+            if (unit.active && !unit.isFiring) {
+                const angleToBase = Phaser.Math.Angle.Between(unit.x, unit.y, this.p1base.x, this.p1base.y);
+                unit.setVelocityX(speed * Math.cos(angleToBase) * direction);
+                unit.setVelocityY(speed * Math.sin(angleToBase) * direction);
+            }
+        });
+    }
 
-            // remove collider
-            collider.destroy();
+    unitCanAttack(rangeCircle, unit) {
+        // every 0.5s
+        const event = this.time.addEvent({
+            delay: unit.attackSpeed,
+            callback: () => {
+                if (!unit.active) {
+                    event.remove();
+                    return;
+                }
 
-            // create event
-            const event = this.time.addEvent({
-                delay: unit1.attackSpeed,
-                callback: () => {
-                    if (unit1.health > 0) {
-                        // unit1.health -= unit2.attack;
-                    }
-                    // if (unit2.health > 0) {
-                    // unit2.health -= unit1.attack;
-                    // }
+                unit.isFiring = false;
 
+                // rangeCircle overlaps with p2units
+                this.physics.overlap(rangeCircle, this.p1units, (unit1, unit2) => {
+                    if (unit1 === unit2) return;
 
-                    console.log(unit1.health, unit2.health);
+                    unit.isFiring = true;
 
-                    // line between units
+                    // attack
                     const graphics = this.add.graphics();
-                    graphics.lineStyle(2, 0xffffff, 1);
+                    graphics.lineStyle(1, 0xffffff, 1);
                     graphics.beginPath();
                     graphics.moveTo(unit1.x, unit1.y);
                     graphics.lineTo(unit2.x, unit2.y);
@@ -293,7 +268,7 @@ class Demo extends Phaser.Scene {
                     graphics.strokePath();
 
                     setTimeout(() => {
-                        graphics.lineStyle(5, 0x0000ff, 0.5);
+                        graphics.lineStyle(20, 0x9999ff, 0.5);
                         graphics.beginPath();
                         graphics.moveTo(unit1.x, unit1.y);
                         graphics.lineTo(unit2.x, unit2.y);
@@ -305,20 +280,19 @@ class Demo extends Phaser.Scene {
                     setTimeout(() => {
                         graphics.destroy();
 
-                        // if (unit1.health <= 0 && unit1?.isDestroyable) {
                         if (unit1.health <= 0) {
-                            unit1.destroy();
                             event.remove();
                         }
                         if (unit2.health <= 0) {
-                            unit2.destroy();
                             event.remove();
                         }
                     }, 200);
-                },
-                loop: true
-            });
+                });
+            },
+            loop: true
         });
+
+
     }
 
     update() {
