@@ -4,6 +4,24 @@ class Demo extends Phaser.Scene {
     }
 
     create() {
+        /*
+            click on base to make it fire for x seconds.
+
+            cooldowns/cards?
+            - spawn unit
+            - fire
+            - aura
+            - location AOE
+            - heal
+            - shield
+            - speed
+            - slow
+            - damage
+            - range
+            - attack speed
+            - health 
+        */
+
         this.colors = {
             // bg 0x777777
             map: 0xaaaaaa,
@@ -19,6 +37,14 @@ class Demo extends Phaser.Scene {
             radius: config.width / 30,
             range: config.width / 5,
             attack: Math.random() * 100,
+            attackSpeed: 1000,
+            health: 1000
+        }
+        this.unitStyles = {
+            health: 100,
+            attack: 10,
+            attackSpeed: 400,
+            range: 300
         }
 
         this.bases = [
@@ -59,7 +85,7 @@ class Demo extends Phaser.Scene {
         bases.forEach((base) => {
             const art = this.add.circle(base.x, base.y, baseStyles.radius, this.colors.border);
             const baseUnit = this.physics.add.image(base.x, base.y, 'player');
-            const range = this.add.circle(base.x, base.y, baseStyles.range, this.colors.border);
+
             // add to unit group
             if (base.p === 1) {
                 baseUnit.setTint(0xff0000);
@@ -72,31 +98,17 @@ class Demo extends Phaser.Scene {
             }
             base.unitGroup = base.p === 1 ? this.p1units : this.p2units;
 
-            // range.setAlpha(0.1);
-            range.setStrokeStyle(2, 0x0000ff, 0.2);
-            // fill alpha
-            range.setFillStyle(0x0000ff, 0.03);
 
-            baseUnit.health = 500;
-            baseUnit.attack = 90;
-            baseUnit.attackSpeed = 500;
+            baseUnit.health = baseStyles.health;
+            baseUnit.range = baseStyles.range;
+            baseUnit.attack = baseStyles.attack;
+            baseUnit.attackSpeed = baseStyles.attackSpeed;
             baseUnit.body.setSize(baseStyles.radius * 2, baseStyles.radius * 2);
             baseUnit.body.setCircle(baseStyles.radius);
             base.unitGroup.add(baseUnit);
 
-            baseUnit.healthbar = this.add.graphics();
-            const baseUnitHealthbar = baseUnit.healthbar;
-
-            this.events.on('update', () => {
-                if (baseUnit.active) {
-                    baseUnitHealthbar.clear();
-                    baseUnitHealthbar.fillStyle(0x00ff00, 1);
-                    baseUnitHealthbar.fillRect(baseUnit.x - baseUnit.health / 2, baseUnit.y - baseUnit.height * 2, baseUnit.health, 10);
-                    baseUnitHealthbar.fillStyle(0xff0000, 1);
-                } else {
-                    baseUnitHealthbar.clear();
-                }
-            });
+            this.giveUnitHealthbar(baseUnit, base.p);
+            this.makeRangeCircle(baseUnit);
         });
     }
 
@@ -106,9 +118,10 @@ class Demo extends Phaser.Scene {
             callback: () => {
                 // find closest p2 unit near p1 base
                 let closestUnit = null;
-                let closestDistance = 600;
+                let closestDistance = this.p2base.range;
                 this.p2units.getChildren().forEach((unit) => {
                     // return;
+                    if (!unit.active) return;
                     const distance = Phaser.Math.Distance.Between(this.p1base.x, this.p1base.y, unit.x, unit.y);
 
                     if (distance < closestDistance) {
@@ -117,8 +130,9 @@ class Demo extends Phaser.Scene {
 
                         // fire projectile
                         const projectile = this.physics.add.image(this.p1base.x, this.p1base.y, 'player');
-                        projectile.body.setSize(10, 10);
-                        projectile.body.setCircle(5);
+                        projectile.body.setSize(6, 6);
+                        projectile.body.setCircle(3);
+                        projectile.setDisplaySize(16, 16);
                         projectile.setTint(0xff0000);
 
                         // fire at closest unit
@@ -158,7 +172,7 @@ class Demo extends Phaser.Scene {
         if (playerN === 1) {
             this.p2units.add(unit);
         } else {
-            this.p1units.add(unit);
+            this.p1units.add(unit.body);
         }
 
         // HITBOX
@@ -168,80 +182,108 @@ class Demo extends Phaser.Scene {
         // STATS
         unit.isDestroyable = true;
         unit.health = 100;
-        unit.attack = 10;
+        unit.attack = 30;
         unit.attackSpeed = 400;
-        unit.range = 300;
+        unit.range = 200;
+        unit.speed = 400;
 
-        // SPAN
+        // SPAWN
         unit.x = playerN % 2 === 0 ? this.p1base.x : this.p2base.x;
         unit.y = playerN % 2 === 0 ? this.p1base.y : this.p2base.y;
 
         // RANGE
-        const rangeCircle = this.makeRangeCircle(unit);
+        this.makeRangeCircle(unit);
 
         // HEALTHBAR
-        this.giveUnitHealthbar(unit, rangeCircle, playerN);
+        this.giveUnitHealthbar(unit, playerN);
 
         // MOVEMENT
         this.unitCanMove(playerN, unit);
 
         // Collision
-        this.unitCanAttack(rangeCircle, unit);
+        this.unitCanAttack(unit);
     }
 
     makeRangeCircle(unit) {
-        const rangeCircle = this.physics.add.image(0, 0, 'player');
-        rangeCircle.body.setSize(unit.range * 2, unit.range * 2);
-        rangeCircle.body.setCircle(unit.range);
-        this.physics.add.existing(rangeCircle);
-        return rangeCircle;
-    }
+        unit.rangeCircle = this.physics.add.image(0, 0, 'player');
+        unit.rangeCircle.body.setSize(unit.range * 2, unit.range * 2);
+        unit.rangeCircle.body.setCircle(unit.range);
+        this.physics.add.existing(unit.rangeCircle);
 
-    giveUnitHealthbar(unit, rangeCircle) {
-        unit.healthbar = this.add.graphics();
-        unit.healthbar.fillStyle(0x00ff00, 1);
-        unit.healthbar.fillRect(unit.x, unit.y - 50, 100, 10);
-        const unitHealthbar = unit.healthbar;
-        unitHealthbar.fillStyle(0x00ff00, 1);
-        unitHealthbar.fillRect(unit.x, unit.y - 50, 100, 10);
         this.events.on('update', () => {
             // destroy unit
             if (unit.health < 0) {
+                unit.rangeCircle.destroy();
+            }
+            if (unit.active) {
+                unit.rangeCircle.x = unit.x;
+                unit.rangeCircle.y = unit.y;
+            }
+        });
+    }
+
+    giveUnitHealthbar(unit) {
+        unit.healthbar = this.add.graphics();
+        unit.healthbar.fillStyle(0x00ff00, 1);
+        unit.healthbar.fillRect(unit.x - 20, unit.y - 30, 40, 5);
+
+        this.events.on('update', () => {
+            // destroy unit
+            if (unit.health < 0) {
+                unitHealthbar.clear();
                 unit.destroy();
-                rangeCircle.destroy();
                 unit.health = 0;
             }
             if (unit.active) {
-                rangeCircle.x = unit.x;
-                rangeCircle.y = unit.y;
-                unitHealthbar.clear();
-                unitHealthbar.fillStyle(0x00ff00, 1);
-                unitHealthbar.fillRect(unit.x, unit.y - 50, unit.health, 10);
-                unitHealthbar.fillStyle(0xff0000, 1);
-            } else {
-                unitHealthbar.clear();
+                unit.healthbar.clear();
+                unit.healthbar.fillStyle(0x00ff00, 1);
+                unit.healthbar.fillRect(unit.x - 20, unit.y - 30, 40 * (unit.health / 100), 5);
             }
         });
     }
 
     unitCanMove(playerN, unit) {
         const direction = playerN % 2 === 0 ? -1 : 1;
-        const speed = 100;
-        const angleToBase = Phaser.Math.Angle.Between(unit.x, unit.y, this.p1base.x, this.p1base.y);
-        unit.setVelocityX(speed * Math.cos(angleToBase) * direction);
-        unit.setVelocityY(speed * Math.sin(angleToBase) * direction);
+        const { speed } = unit;
+        let angleToBase = Phaser.Math.Angle.Between(unit.x, unit.y, this.p1base.x, this.p1base.y);
+        let velocityX = speed * Math.cos(angleToBase) * direction;
+        let velocityY = speed * Math.sin(angleToBase) * direction;
 
+        // make unit not overlap other units. collision.
+        this.physics.add.collider(unit, this.p2units, (unit1, unit2) => {
+            if (unit1 === unit2) return;
+
+            angleToBase = Phaser.Math.Angle.Between(unit1.x, unit1.y, this.p1base.x, this.p1base.y);
+            velocityX = speed * Math.cos(angleToBase) * direction;
+            velocityY = speed * Math.sin(angleToBase) * direction;
+        });
+
+        // every frame, move if not firing
         this.events.on('update', () => {
-            if (unit.active && !unit.isFiring) {
-                const angleToBase = Phaser.Math.Angle.Between(unit.x, unit.y, this.p1base.x, this.p1base.y);
-                unit.setVelocityX(speed * Math.cos(angleToBase) * direction);
-                unit.setVelocityY(speed * Math.sin(angleToBase) * direction);
+            if (!unit.active) return;
+
+            if (unit.isFiring) {
+                unit.setVelocityX(0);
+                unit.setVelocityY(0);
+            } else {
+                unit.setVelocityX(velocityX);
+                unit.setVelocityY(velocityY);
             }
         });
     }
 
-    unitCanAttack(rangeCircle, unit) {
-        // every 0.5s
+    unitCanAttack(unit) {
+        // on update
+        this.events.on('update', () => {
+            // attack if in range
+            this.physics.overlap(unit.rangeCircle, this.p1units, (unit1, unit2) => {
+                if (unit1 === unit2) return;
+
+                unit.isFiring = true;
+            });
+        });
+
+        // every attackSpeed, attack
         const event = this.time.addEvent({
             delay: unit.attackSpeed,
             callback: () => {
@@ -250,10 +292,10 @@ class Demo extends Phaser.Scene {
                     return;
                 }
 
-                unit.isFiring = false;
+                if (!unit.isFiring) return;
 
-                // rangeCircle overlaps with p2units
-                this.physics.overlap(rangeCircle, this.p1units, (unit1, unit2) => {
+
+                this.physics.overlap(unit.rangeCircle, this.p1units, (unit1, unit2) => {
                     if (unit1 === unit2) return;
 
                     unit.isFiring = true;
@@ -287,12 +329,11 @@ class Demo extends Phaser.Scene {
                             event.remove();
                         }
                     }, 200);
+
                 });
             },
             loop: true
         });
-
-
     }
 
     update() {
