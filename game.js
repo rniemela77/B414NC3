@@ -1,3 +1,5 @@
+import Base from './base.js';
+
 class Demo extends Phaser.Scene {
     preload() {
         this.load.image('player', 'assets/player.png');
@@ -21,6 +23,8 @@ class Demo extends Phaser.Scene {
             - attack speed
             - health 
         */
+
+        this.base = new Base(this);
 
         this.colors = {
             // bg 0x777777
@@ -109,6 +113,9 @@ class Demo extends Phaser.Scene {
 
             this.giveUnitHealthbar(baseUnit, base.p);
             this.makeRangeCircle(baseUnit);
+
+            // base is not moved by units
+            baseUnit.setImmovable(true);
         });
     }
 
@@ -230,7 +237,7 @@ class Demo extends Phaser.Scene {
         this.events.on('update', () => {
             // destroy unit
             if (unit.health < 0) {
-                unitHealthbar.clear();
+                unit.healthbar.clear();
                 unit.destroy();
                 unit.health = 0;
             }
