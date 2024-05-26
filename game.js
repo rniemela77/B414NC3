@@ -54,18 +54,64 @@ class Demo extends Phaser.Scene {
     }
 
     createButtons() {
-        const button = this.add.text(this.width / 2, this.height - 200, 'Spawn Unit', { fill: '#00ff00' });
+        const fontSize = 30;
+        const padding = 10;
+        const margin = 4;
+        // spawn p1unit button
+        const button = this.add.text(this.width / 2, this.height - 200, 'Spawn p1unit', { fill: '#00ff00' });
         button.setBackgroundColor('#000000');
-        button.setPadding(100);
-        button.setFontSize(40);
+        button.setPadding(padding);
+        button.setFontSize(fontSize);
         button.setInteractive();
         button.on('pointerdown', () => {
-            this.createUnit(Math.random() > 0.5 ? 1 : 2);
+            this.createUnit(1);
         });
-        button.x = game.config.width / 2 - button.width / 2;
-        button.y = game.config.height - 300;
+        button.x = 0
+        button.y = game.config.height - button.height;
         button.setScrollFactor(0);
         button.setDepth(10);
+
+        // spawn p2unit button
+        const button2 = this.add.text(this.width / 2, this.height - 200, 'Spawn p2unit', { fill: '#00ff00' });
+        button2.setBackgroundColor('#000000');
+        button2.setPadding(padding);
+        button2.setFontSize(fontSize);
+        button2.setInteractive();
+        button2.on('pointerdown', () => {
+            this.createUnit(2);
+        });
+        button2.x = button.width + margin;
+        button2.y = game.config.height - button2.height;
+        button2.setScrollFactor(0);
+        button2.setDepth(10);
+
+        // buff button
+        const buffButton = this.add.text(this.width / 2, this.height - 200, 'Buff p1unit', { fill: '#00ff00' });
+        buffButton.setBackgroundColor('#000000');
+        buffButton.setPadding(padding);
+        buffButton.setFontSize(fontSize);
+        buffButton.setInteractive();
+        buffButton.on('pointerdown', () => {
+            this.buffUnits(1);
+        });
+        buffButton.x = button.width + button2.width + margin * 2
+        buffButton.y = game.config.height - buffButton.height;
+        buffButton.setScrollFactor(0);
+        buffButton.setDepth(10);
+
+        // buff button
+        const buffButton2 = this.add.text(this.width / 2, this.height - 200, 'Buff p2unit', { fill: '#00ff00' });
+        buffButton2.setBackgroundColor('#000000');
+        buffButton2.setPadding(padding);
+        buffButton2.setFontSize(fontSize);
+        buffButton2.setInteractive();
+        buffButton2.on('pointerdown', () => {
+            this.buffUnits(2);
+        });
+        buffButton2.x = button.width + button2.width + buffButton.width + margin * 3
+        buffButton2.y = game.config.height - buffButton2.height;
+        buffButton2.setScrollFactor(0);
+        buffButton2.setDepth(10);
     }
 
     createUnit(playerN) {
@@ -107,11 +153,37 @@ class Demo extends Phaser.Scene {
         // MOVEMENT
         this.unitCanMove(unit);
 
-
         // on update
         this.events.on('update', () => {
             if (unit.health <= 0 && unit.active) {
                 unit.destroy();
+            }
+        });
+    }
+
+    buffUnits(playerN) {
+        const playerUnits = playerN === 1 ? this.p1units : this.p2units;
+        playerUnits.getChildren().forEach(unit => {
+            unit.attack += 5;
+            unit.health += 100;
+            unit.range += 150;
+            unit.body.setSize(100, 100);
+            unit.body.setCircle(50);
+            // display size
+
+
+
+        });
+
+        // after 2s, revert
+        this.time.addEvent({
+            delay: 2000,
+            callback: () => {
+                playerUnits.getChildren().forEach(unit => {
+                    unit.attack -= 5;
+                    unit.health -= 100;
+                    unit.range -= 150;
+                });
             }
         });
     }
