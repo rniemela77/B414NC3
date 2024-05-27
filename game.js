@@ -1,4 +1,5 @@
 import Base from './base.js';
+import Unit from './unit.js';
 
 class Demo extends Phaser.Scene {
     preload() {
@@ -25,11 +26,13 @@ class Demo extends Phaser.Scene {
         */
 
         this.base = new Base(this);
+        this.unit = new Unit(this);
 
         this.colors = {
             // bg 0x777777
             map: 0xaaaaaa,
             border: 0x555555,
+            resource: 0x1111ff,
         };
 
         this.units = this.physics.add.group();
@@ -42,15 +45,108 @@ class Demo extends Phaser.Scene {
 
         // periodically spawn units
         this.time.addEvent({
-            delay: 3000,
+            delay: 1000,
             callback: () => {
                 const player = Math.random() > 0.5 ? 1 : 2;
-                this.createUnit(player);
+                this.createUnit(player, 1);
             },
             loop: true
         });
 
         this.createButtons();
+
+        this.createBar();
+
+        this.createCards();
+    }
+
+    createBar() {
+        // create a bar that spans from 0 to width
+        const fullBar = this.add.rectangle(0, 0, this.game.config.width, 100, this.colors.border);
+        fullBar.setOrigin(0, 0);
+
+        let currentBar = this.add.rectangle(0, 0, 50, 100, this.colors.resource, 0.5);
+        currentBar.setOrigin(0, 0);
+        this.currentBarAmount = 10;
+
+
+        // every 0.2s
+        this.time.addEvent({
+            delay: 200,
+            callback: () => {
+                if (this.currentBarAmount  >= 100) {
+                    this.currentBarAmount  = 100;
+                }
+                // increase bar amount
+                this.currentBarAmount  += 2;
+
+                // update currentBar. (100% max width)
+                currentBar.width = this.game.config.width * (this.currentBarAmount  / 100);
+            },
+            loop: true
+        });
+    }
+
+    createCards() {
+        const cards = [
+            {
+                id: 1,
+                name: 'Spawn White Liner',
+                cost: 25,
+            },
+            {
+                id: 2,
+                name: 'Spawn Tank',
+                cost: 50,
+            },
+        ]
+
+        // create 3 buttons in center of screen
+        const padding = 20;
+        const margin = 4;
+        const fontSize = 30;
+        cards.forEach((card, i) => {
+            // create button in center
+            const button = this.add.text(this.game.config.width / 2, this.game.config.height / 1.2, card.name, { fill: '#00ff00' });
+            button.setBackgroundColor('#000000');
+            button.setFontSize(fontSize);
+            button.setInteractive();
+            button.setWordWrapWidth(300);
+            button.setAlign('center');
+            button.setPadding(padding);
+
+            // move button to center
+            button.setScrollFactor(0);
+            button.setDepth(10);
+            
+            button.x -= button.width * i + margin * i;
+
+            // cost
+            const cost = this.add.text(button.x, button.y - 30, card.cost, { fill: '#00ccff' });
+            cost.setBackgroundColor('#000000');
+            cost.setFontSize(fontSize);
+            cost.setPadding(padding / 5);
+            cost.setScrollFactor(0);
+            cost.setDepth(10);
+
+            // on click
+            button.on('pointerdown', () => {
+                // if enough resource
+                if (this.currentBarAmount  >= card.cost) {
+                    this.currentBarAmount  -= card.cost;
+                    this.createUnit(1, card.id);
+                }
+            });
+
+            // on update
+            this.events.on('update', () => {
+                if (this.currentBarAmount  >= card.cost) {
+                    button.setBackgroundColor('#000000');
+                } else {
+                    button.setBackgroundColor('#ff0000');
+                }
+            });
+        });
     }
 
     createButtons() {
@@ -64,7 +160,7 @@ class Demo extends Phaser.Scene {
         button.setFontSize(fontSize);
         button.setInteractive();
         button.on('pointerdown', () => {
-            this.createUnit(1);
+            this.createUnit(1, 1);
         });
         button.x = 0
         button.y = game.config.height - button.height;
@@ -78,7 +174,7 @@ class Demo extends Phaser.Scene {
         button2.setFontSize(fontSize);
         button2.setInteractive();
         button2.on('pointerdown', () => {
-            this.createUnit(2);
+            this.createUnit(2, 1);
         });
         button2.x = button.width + margin;
         button2.y = game.config.height - button2.height;
@@ -114,7 +210,7 @@ class Demo extends Phaser.Scene {
         buffButton2.setDepth(10);
     }
 
-    createUnit(playerN) {
+    createUnit(playerN, unitId) {
         const unit = this.physics.add.image(0, 0, 'player');
         unit.ownedBy = playerN;
 
@@ -125,16 +221,12 @@ class Demo extends Phaser.Scene {
             this.p2units.add(unit);
         }
 
-        // HITBOX
-        unit.body.setSize(40, 40);
-        unit.body.setCircle(20);
-
-        // STATS
-        unit.health = 100;
-        unit.attack = 10;
-        unit.attackSpeed = 1000;
-        unit.range = 200;
-        unit.speed = 400;
+        // give unit stats
+        if (unitId === 1) {
+            this.unit.whiteLiner(unit);
+        } else if (unitId === 2) {
+            this.unit.tank(unit);
+        }
 
         // SPAWN
         const thisBase = unit.ownedBy === 1 ? this.base.p1base : this.base.p2base;
@@ -142,7 +234,8 @@ class Demo extends Phaser.Scene {
         unit.y = thisBase.y;
 
         // RANGE
-        this.makeRangeCircle(unit);
+        this.makeAttackRangeCircle(unit);
+        this.makeVisionRangeCircle(unit);
 
         // HEALTHBAR
         this.giveUnitHealthbar(unit);
@@ -169,9 +262,6 @@ class Demo extends Phaser.Scene {
             unit.range += 150;
             unit.body.setSize(100, 100);
             unit.body.setCircle(50);
-            // display size
-
-
 
         });
 
@@ -188,11 +278,33 @@ class Demo extends Phaser.Scene {
         });
     }
 
-    makeRangeCircle(unit) {
+    makeVisionRangeCircle(unit) {
+        unit.visionRangeCircle = this.physics.add.image(0, 0, 'player');
+        unit.visionRangeCircle.body.setSize(unit.visionRange * 2, unit.visionRange * 2);
+        unit.visionRangeCircle.body.setCircle(unit.visionRange);
+        this.physics.add.existing(unit.visionRangeCircle);
+
+
+        unit.visionRangeCircle.setDebugBodyColor(0x0055ff);
+
+        this.events.on('update', () => {
+            if (unit.active) {
+                unit.visionRangeCircle.x = unit.x;
+                unit.visionRangeCircle.y = unit.y;
+            } else {
+                unit.visionRangeCircle.destroy();
+            }
+        });
+    }
+    
+    makeAttackRangeCircle(unit) {
         unit.rangeCircle = this.physics.add.image(0, 0, 'player');
         unit.rangeCircle.body.setSize(unit.range * 2, unit.range * 2);
         unit.rangeCircle.body.setCircle(unit.range);
         this.physics.add.existing(unit.rangeCircle);
+
+        // debug color
+        unit.rangeCircle.setDebugBodyColor(0x005500);
 
         this.events.on('update', () => {
             if (unit.active) {
@@ -229,13 +341,15 @@ class Demo extends Phaser.Scene {
                     unit.healthbarDamage.fillRect(unit.x - currentHealth / 5, unit.y - unit.body.height / 1.5, 40 * (currentHealth / 100), 5);
                     unit.healthbarDamage.setDepth(1);
 
-                    this.time.addEvent({
-                        delay: 200,
-                        callback: () => {
-                            unit.healthbarDamage.clear();
-                            currentHealth = unit.health;
-                        }
-                    });
+                    // this.time.addEvent({
+                        // delay: 200,
+                        // callback: () => {
+                            // unit.healthbarDamage.clear();
+                            // currentHealth = unit.health;
+                        // }
+                    // });
+
+                    unit.healthbarDamage.fillRect(unit.x - unit.health / 5, unit.y - unit.body.height / 1.5, 40 * (unit.health / 100), 5);
                 }
 
                 // update current health
@@ -275,6 +389,26 @@ class Demo extends Phaser.Scene {
                 unit.setVelocityX(0);
                 unit.setVelocityY(0);
             } else {
+                // move toward closest unit
+                let closestUnit = null;
+                let closestDistance = unit.visionRange;
+                const enemyUnits = unit.ownedBy === 1 ? this.p2units : this.p1units;
+                enemyUnits.getChildren().forEach(unit2 => {
+                    if (!unit2.active) return;
+
+                    const distance = Phaser.Math.Distance.Between(unit.x, unit.y, unit2.x, unit2.y);
+                    if (distance < closestDistance) {
+                        closestDistance = distance;
+                        closestUnit = unit2;
+                    }
+                });
+                // if there is a closest unit, move towards it
+                if (closestUnit) {
+                    const angleToUnit = Phaser.Math.Angle.Between(unit.x, unit.y, closestUnit.x, closestUnit.y);
+                    velocityX = speed * Math.cos(angleToUnit);
+                    velocityY = speed * Math.sin(angleToUnit);
+                }
+
                 unit.setVelocityX(velocityX);
                 unit.setVelocityY(velocityY);
             }
@@ -323,6 +457,17 @@ class Demo extends Phaser.Scene {
                                 unit.isFiring = false;
                             }
                         });
+                    }
+                });
+
+                // create white circle
+                const whiteSplash = this.add.circle(closestUnit.x, closestUnit.y, 20, 0xffffff);
+
+                
+                this.time.addEvent({
+                    delay: 50,
+                    callback: () => {
+                        whiteSplash.destroy();
                     }
                 });
 

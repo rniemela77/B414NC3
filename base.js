@@ -9,6 +9,7 @@ class Base {
         this.colors = scene.colors;
         this.p1units = scene.p1units;
         this.p2units = scene.p2units;
+        this.unit = scene.unit;
 
         this.p1base = null;
         this.p2base = null;
@@ -16,26 +17,18 @@ class Base {
         this.bases = [
             {
                 distance: this.game.config.width / 3,
-                radius: this.game.config.width / 30,
                 x: this.game.config.width / 3,
                 y: this.game.config.height / 3,
-                range: 400,
                 color: 0xff0000,
-                attackSpeed: 1000,
-                attack: 45,
-                health: 1000,
+                radius: this.game.config.width / 30,
                 p: 1
             },
             {
                 distance: this.game.config.width / 3,
-                radius: this.game.config.width / 30,
                 x: this.game.config.width / 1.5,
                 y: this.game.config.height / 1.5,
-                range: 400,
                 color: 0x0000ff,
-                attackSpeed: 1000,
-                attack: 45,
-                health: 1000,
+                radius: this.game.config.width / 30,
                 p: 2
             }
         ]
@@ -45,8 +38,9 @@ class Base {
     createBase(player) {
         const base = this.bases.find(b => b.p === player);
 
-        const art = this.add.circle(base.x, base.y,  base.radius, base.color);
+        const art = this.add.circle(base.x, base.y, base.radius, base.color);
         const baseUnit = this.physics.add.image(base.x, base.y, 'player');
+        baseUnit.p = base.p;
 
         // add to unit group
         if (base.p === 1) {
@@ -57,22 +51,17 @@ class Base {
             this.p2base = baseUnit;
         }
 
-        console.log('...3');
-        baseUnit.health = base.health;
-        baseUnit.attack = base.attack;
-        baseUnit.attackSpeed = base.attackSpeed;
-        baseUnit.range = base.range;
-        baseUnit.speed = 0;
-        baseUnit.p = base.p;
+        this.scene.unit.makeTower(baseUnit);
 
-        baseUnit.body.setSize(base.radius * 2, base.radius * 2);
-        baseUnit.body.setCircle(base.radius);
+        
+
 
         this.scene.giveUnitHealthbar(baseUnit);
-        this.scene.makeRangeCircle(baseUnit);
+        this.scene.makeAttackRangeCircle(baseUnit);
+        this.scene.makeVisionRangeCircle(baseUnit);
 
         baseUnit.setImmovable(true);
-        
+
         this.baseCanAttack(baseUnit);
     }
 
@@ -81,7 +70,7 @@ class Base {
             delay: base.attackSpeed,
             callback: () => {
                 const enemyUnits = base.p === 1 ? this.scene.p2units : this.scene.p1units;
-        
+
                 // get closest
                 if (!enemyUnits.getChildren().length) return;
                 let closestUnit = null;
