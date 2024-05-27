@@ -47,8 +47,11 @@ class Demo extends Phaser.Scene {
         this.time.addEvent({
             delay: 1000,
             callback: () => {
-                const player = Math.random() > 0.5 ? 1 : 2;
-                this.createUnit(player, 1);
+                // const player = Math.random() > 0.5 ? 1 : 2;
+                // this.createUnit(player, 1);
+
+                this.createUnit(1, 1);
+                this.createUnit(2, 1);
             },
             loop: true
         });
@@ -211,7 +214,8 @@ class Demo extends Phaser.Scene {
     }
 
     createUnit(playerN, unitId) {
-        const unit = this.physics.add.image(0, 0, 'player');
+        const unit = this.add.circle(0, 0, 5, 0xffffff);
+
         unit.ownedBy = playerN;
 
         // GROUP
@@ -228,14 +232,38 @@ class Demo extends Phaser.Scene {
             this.unit.tank(unit);
         }
 
+        // unit size
+        unit.body.setSize(unit.size, unit.size);
+        unit.body.setCircle(unit.size / 2);
+
+        unit.displayWidth = unit.size * 3;
+        unit.displayHeight = unit.size * 3;
+
+        unit.fillColor = unit.ownedBy === 1 ? 0xff0000 : 0x0000ff;
+        this.physics.add.existing(unit);
+
+        // hide debug icon
+        unit.body.debugShowBody = false;
+
         // SPAWN
-        const thisBase = unit.ownedBy === 1 ? this.base.p1base : this.base.p2base;
-        unit.x = thisBase.x;
-        unit.y = thisBase.y;
+        const playerBaseLocation = unit.ownedBy === 1 ? this.base.p1base : this.base.p2base;
+        unit.x = playerBaseLocation.x;
+        unit.y = playerBaseLocation.y;
+
+        // if p1unit, move to right
+        if (unit.ownedBy === 1) {
+            // unit.x += 100;
+            unit.x += Math.random() * 100 + 100;
+        } else {
+            // unit.x -= 100;
+            unit.x -= Math.random() * 100 + 100;
+        }
+
+
 
         // RANGE
-        this.makeAttackRangeCircle(unit);
         this.makeVisionRangeCircle(unit);
+        this.makeAttackRangeCircle(unit);
 
         // HEALTHBAR
         this.giveUnitHealthbar(unit);
@@ -279,13 +307,9 @@ class Demo extends Phaser.Scene {
     }
 
     makeVisionRangeCircle(unit) {
-        unit.visionRangeCircle = this.physics.add.image(0, 0, 'player');
-        unit.visionRangeCircle.body.setSize(unit.visionRange * 2, unit.visionRange * 2);
-        unit.visionRangeCircle.body.setCircle(unit.visionRange);
-        this.physics.add.existing(unit.visionRangeCircle);
-
-
-        unit.visionRangeCircle.setDebugBodyColor(0x0055ff);
+        unit.visionRangeCircle = this.add.circle(0, 0, unit.visionRange, 0x553333);
+        unit.visionRangeCircle.setStrokeStyle(2, 0x553333, 0.1);
+        unit.visionRangeCircle.setFillStyle(0x553333, 0);
 
         this.events.on('update', () => {
             if (unit.active) {
@@ -298,13 +322,15 @@ class Demo extends Phaser.Scene {
     }
     
     makeAttackRangeCircle(unit) {
-        unit.rangeCircle = this.physics.add.image(0, 0, 'player');
+        unit.rangeCircle = this.add.circle(0, 0, unit.range, 0x578333);
+        unit.rangeCircle.setStrokeStyle(2, 0x335588, 0.2);
+        unit.rangeCircle.setFillStyle(0x553333, 0);
+        this.physics.add.existing(unit.rangeCircle);
         unit.rangeCircle.body.setSize(unit.range * 2, unit.range * 2);
         unit.rangeCircle.body.setCircle(unit.range);
-        this.physics.add.existing(unit.rangeCircle);
-
-        // debug color
-        unit.rangeCircle.setDebugBodyColor(0x005500);
+        // make body debug invisible
+        unit.rangeCircle.debugShowBody = false;
+        unit.rangeCircle.body.debugShowBody = false;
 
         this.events.on('update', () => {
             if (unit.active) {
@@ -386,8 +412,8 @@ class Demo extends Phaser.Scene {
             if (!unit.active) return;
 
             if (unit.isFiring) {
-                unit.setVelocityX(0);
-                unit.setVelocityY(0);
+                unit.body.setVelocityX(0);
+                unit.body.setVelocityY(0);
             } else {
                 // move toward closest unit
                 let closestUnit = null;
@@ -409,8 +435,8 @@ class Demo extends Phaser.Scene {
                     velocityY = speed * Math.sin(angleToUnit);
                 }
 
-                unit.setVelocityX(velocityX);
-                unit.setVelocityY(velocityY);
+                unit.body.setVelocityX(velocityX);
+                unit.body.setVelocityY(velocityY);
             }
         });
     }
