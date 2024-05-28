@@ -1,5 +1,6 @@
 import Base from './base.js';
 import Unit from './unit.js';
+import Attack from './attack.js';
 
 class Demo extends Phaser.Scene {
     preload() {
@@ -27,6 +28,7 @@ class Demo extends Phaser.Scene {
 
         this.base = new Base(this);
         this.unit = new Unit(this);
+        this.attack = new Attack(this);
 
         this.colors = {
             // bg 0x777777
@@ -77,14 +79,14 @@ class Demo extends Phaser.Scene {
         this.time.addEvent({
             delay: 200,
             callback: () => {
-                if (this.currentBarAmount  >= 100) {
-                    this.currentBarAmount  = 100;
+                if (this.currentBarAmount >= 100) {
+                    this.currentBarAmount = 100;
                 }
                 // increase bar amount
-                this.currentBarAmount  += 2;
+                this.currentBarAmount += 2;
 
                 // update currentBar. (100% max width)
-                currentBar.width = this.game.config.width * (this.currentBarAmount  / 100);
+                currentBar.width = this.game.config.width * (this.currentBarAmount / 100);
             },
             loop: true
         });
@@ -100,7 +102,7 @@ class Demo extends Phaser.Scene {
             {
                 id: 2,
                 name: 'Spawn Tank',
-                cost: 50,
+                cost: 10,
             },
         ]
 
@@ -121,7 +123,7 @@ class Demo extends Phaser.Scene {
             // move button to center
             button.setScrollFactor(0);
             button.setDepth(10);
-            
+
             button.x -= button.width * i + margin * i;
 
             // cost
@@ -135,15 +137,15 @@ class Demo extends Phaser.Scene {
             // on click
             button.on('pointerdown', () => {
                 // if enough resource
-                if (this.currentBarAmount  >= card.cost) {
-                    this.currentBarAmount  -= card.cost;
+                if (this.currentBarAmount >= card.cost) {
+                    this.currentBarAmount -= card.cost;
                     this.createUnit(1, card.id);
                 }
             });
 
             // on update
             this.events.on('update', () => {
-                if (this.currentBarAmount  >= card.cost) {
+                if (this.currentBarAmount >= card.cost) {
                     button.setBackgroundColor('#000000');
                 } else {
                     button.setBackgroundColor('#ff0000');
@@ -216,6 +218,8 @@ class Demo extends Phaser.Scene {
     createUnit(playerN, unitId) {
         const unit = this.add.circle(0, 0, 5, 0xffffff);
 
+        unit.typeId = unitId;
+
         unit.ownedBy = playerN;
 
         // GROUP
@@ -233,17 +237,14 @@ class Demo extends Phaser.Scene {
         }
 
         // unit size
-        unit.body.setSize(unit.size, unit.size);
-        unit.body.setCircle(unit.size / 2);
-
-        unit.displayWidth = unit.size * 3;
-        unit.displayHeight = unit.size * 3;
+        unit.radius = unit.size;
+        this.physics.add.existing(unit);
+        unit.body.setSize(unit.radius * 2, unit.radius * 2);
+        unit.body.setCircle(unit.radius * 1.5);
+        unit.body.setOffset(-unit.radius / 2, -unit.radius / 2);
 
         unit.fillColor = unit.ownedBy === 1 ? 0xff0000 : 0x0000ff;
-        this.physics.add.existing(unit);
 
-        // hide debug icon
-        unit.body.debugShowBody = false;
 
         // SPAWN
         const playerBaseLocation = unit.ownedBy === 1 ? this.base.p1base : this.base.p2base;
@@ -258,8 +259,6 @@ class Demo extends Phaser.Scene {
             // unit.x -= 100;
             unit.x -= Math.random() * 100 + 100;
         }
-
-
 
         // RANGE
         this.makeVisionRangeCircle(unit);
@@ -320,7 +319,7 @@ class Demo extends Phaser.Scene {
             }
         });
     }
-    
+
     makeAttackRangeCircle(unit) {
         unit.rangeCircle = this.add.circle(0, 0, unit.range, 0x578333);
         unit.rangeCircle.setStrokeStyle(2, 0x335588, 0.2);
@@ -368,11 +367,11 @@ class Demo extends Phaser.Scene {
                     unit.healthbarDamage.setDepth(1);
 
                     // this.time.addEvent({
-                        // delay: 200,
-                        // callback: () => {
-                            // unit.healthbarDamage.clear();
-                            // currentHealth = unit.health;
-                        // }
+                    // delay: 200,
+                    // callback: () => {
+                    // unit.healthbarDamage.clear();
+                    // currentHealth = unit.health;
+                    // }
                     // });
 
                     unit.healthbarDamage.fillRect(unit.x - unit.health / 5, unit.y - unit.body.height / 1.5, 40 * (unit.health / 100), 5);
@@ -447,8 +446,6 @@ class Demo extends Phaser.Scene {
         // on update
         this.events.on('update', () => {
             if (!unit.active) return;
-
-            // if already attacking, do nothing
             if (unit.isFiring) return;
 
             // if overlapping enemyUnits, attack
@@ -460,42 +457,14 @@ class Demo extends Phaser.Scene {
             });
 
             if (unit.isFiring && closestUnit) {
-                // attack
-                const graphics = this.add.graphics();
-                graphics.lineStyle(1, 0xffffff, 1);
-                graphics.beginPath();
-                graphics.moveTo(unit.x, unit.y);
-                graphics.lineTo(closestUnit.x, closestUnit.y);
-                graphics.closePath();
-                graphics.strokePath();
+                if (unit.typeId === 1) {
+                    this.attack.whiteLine(unit, closestUnit);
+                } else if (unit.typeId === 2) {
+                    this.attack.meleeAttack(unit, closestUnit);
+                }
 
-                // damage
-                closestUnit.health -= unit.attack;
 
-                this.time.addEvent({
-                    delay: 100,
-                    callback: () => {
-                        graphics.destroy();
-
-                        this.time.addEvent({
-                            delay: unit.attackSpeed,
-                            callback: () => {
-                                unit.isFiring = false;
-                            }
-                        });
-                    }
-                });
-
-                // create white circle
-                const whiteSplash = this.add.circle(closestUnit.x, closestUnit.y, 20, 0xffffff);
-
-                
-                this.time.addEvent({
-                    delay: 50,
-                    callback: () => {
-                        whiteSplash.destroy();
-                    }
-                });
+                this.attack.createWhiteSplash(closestUnit);
 
             }
         });

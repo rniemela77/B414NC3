@@ -19,12 +19,12 @@ class Unit {
         
 
 
-        unit.range = 400;
+        unit.range = unit.radius * 5;
         unit.attackSpeed = 1000;
         unit.attack = 45;
         unit.health = 1000;
 
-        unit.visionRange = 400;
+        unit.visionRange = unit.range;
     }
 
     whiteLiner(unit) {
@@ -42,24 +42,28 @@ class Unit {
         // STATS
         unit.health = 30;
         unit.attack = 10;
-        unit.attackSpeed = 500;
+        unit.attackSpeed = 800;
         unit.range = 100;
-        unit.speed = 60;
+        unit.speed = 30;
 
         unit.size = 10;
         unit.visionRange = 400;
+
+        unit.body.debugShowBody = false;
     }
 
      tank(unit) {
         // STATS
         unit.health = 500;
         unit.attack = 100;
-        unit.attackSpeed = 1000;
-        unit.range = 20;
-        unit.speed = 20;
+        unit.attackSpeed = 100;
+        unit.range = 300;
+        unit.speed = 250;
+
         unit.size = 20;
-        
         unit.visionRange = 400;
+
+        unit.body.debugShowBody = false;
      }
 }
 
