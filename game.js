@@ -104,6 +104,38 @@ class Demo extends Phaser.Scene {
                 name: 'Spawn Tank',
                 cost: 10,
             },
+            {
+                id: 3,
+                name: '+ ATK',
+                cost: 10,
+                statModifications: {
+                    attack: 20,
+                }
+            },
+            {
+                id: 4,
+                name: '+ HP',
+                cost: 10,
+                statModifications: {
+                    health: 100,
+                }
+            },
+            {
+                id: 5,
+                name: '+ SPD',
+                cost: 10,
+                statModifications: {
+                    speed: 20,
+                }
+            },
+            {
+                id: 6,
+                name: '+ RNG',
+                cost: 10,
+                statModifications: {
+                    range: 50,
+                }
+            }
         ]
 
         // create 3 buttons in center of screen
@@ -123,8 +155,13 @@ class Demo extends Phaser.Scene {
             // move button to center
             button.setScrollFactor(0);
             button.setDepth(10);
+            button.width = 300;
 
-            button.x -= button.width * i + margin * i;
+            // center the button
+            button.x = this.game.config.width / 2;
+            // move it pixels to the left or right depending on i
+            button.x -= (button.width + margin) * i;
+
 
             // cost
             const cost = this.add.text(button.x, button.y - 30, card.cost, { fill: '#00ccff' });
@@ -139,7 +176,13 @@ class Demo extends Phaser.Scene {
                 // if enough resource
                 if (this.currentBarAmount >= card.cost) {
                     this.currentBarAmount -= card.cost;
-                    this.createUnit(1, card.id);
+
+                    // if card is spawn unit
+                    if (card.name.includes('Spawn')) {
+                        this.createUnit(1, card.id);
+                    } else {
+                        this.buffUnits(1, card.statModifications);
+                    }
                 }
             });
 
@@ -281,27 +324,35 @@ class Demo extends Phaser.Scene {
         });
     }
 
-    buffUnits(playerN) {
+    buffUnits(playerN, statModifications) {
         const playerUnits = playerN === 1 ? this.p1units : this.p2units;
         playerUnits.getChildren().forEach(unit => {
-            unit.attack += 5;
-            unit.health += 100;
-            unit.range += 150;
-            unit.body.setSize(100, 100);
-            unit.body.setCircle(50);
 
-        });
+            if (statModifications) {
+                Object.keys(statModifications).forEach(stat => {
+                    unit[stat] += statModifications[stat];
+                });
 
-        // after 2s, revert
-        this.time.addEvent({
-            delay: 2000,
-            callback: () => {
-                playerUnits.getChildren().forEach(unit => {
-                    unit.attack -= 5;
-                    unit.health -= 100;
-                    unit.range -= 150;
+                // make unit glow
+                unit.fillColor = 0xffff00;
+                this.time.addEvent({
+                    delay: 2000,
+                    callback: () => {
+                        // undo color
+                        unit.fillColor = unit.ownedBy === 1 ? 0xff0000 : 0x0000ff;
+
+                        // undo stat
+                        Object.keys(statModifications).forEach(stat => {
+                            unit[stat] -= statModifications[stat];
+                        });
+                    }
                 });
             }
+            // unit.attack += 5;
+            // unit.health += 100;
+            // unit.range += 150;
+            // unit.body.setSize(100, 100);
+            // unit.body.setCircle(50);
         });
     }
 

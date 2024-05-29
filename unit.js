@@ -56,8 +56,8 @@ class Unit {
         // STATS
         unit.health = 500;
         unit.attack = 100;
-        unit.attackSpeed = 100;
-        unit.range = 300;
+        unit.attackSpeed = 1000;
+        unit.range = 30;
         unit.speed = 250;
 
         unit.size = 20;
