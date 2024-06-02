@@ -1,6 +1,8 @@
 import Base from './base.js';
 import Unit from './unit.js';
 import Attack from './attack.js';
+import Cards from './cards.js';
+import Ui from './ui.js';
 
 class Demo extends Phaser.Scene {
     preload() {
@@ -30,6 +32,11 @@ class Demo extends Phaser.Scene {
         this.unit = new Unit(this);
         this.attack = new Attack(this);
 
+        this.energy = {
+            current: 0,
+            max: 100,
+        };
+
         this.colors = {
             // bg 0x777777
             map: 0xaaaaaa,
@@ -58,204 +65,11 @@ class Demo extends Phaser.Scene {
             loop: true
         });
 
-        this.createButtons();
-
-        this.createBar();
-
-        this.createCards();
-    }
-
-    createBar() {
-        // create a bar that spans from 0 to width
-        const fullBar = this.add.rectangle(0, 0, this.game.config.width, 100, this.colors.border);
-        fullBar.setOrigin(0, 0);
-
-        let currentBar = this.add.rectangle(0, 0, 50, 100, this.colors.resource, 0.5);
-        currentBar.setOrigin(0, 0);
-        this.currentBarAmount = 10;
-
-
-        // every 0.2s
-        this.time.addEvent({
-            delay: 200,
-            callback: () => {
-                if (this.currentBarAmount >= 100) {
-                    this.currentBarAmount = 100;
-                }
-                // increase bar amount
-                this.currentBarAmount += 2;
-
-                // update currentBar. (100% max width)
-                currentBar.width = this.game.config.width * (this.currentBarAmount / 100);
-            },
-            loop: true
-        });
-    }
-
-    createCards() {
-        const cards = [
-            {
-                id: 1,
-                name: 'Spawn White Liner',
-                cost: 25,
-            },
-            {
-                id: 2,
-                name: 'Spawn Tank',
-                cost: 10,
-            },
-            {
-                id: 3,
-                name: '+ ATK',
-                cost: 10,
-                statModifications: {
-                    attack: 20,
-                }
-            },
-            {
-                id: 4,
-                name: '+ HP',
-                cost: 10,
-                statModifications: {
-                    health: 100,
-                }
-            },
-            {
-                id: 5,
-                name: '+ SPD',
-                cost: 10,
-                statModifications: {
-                    speed: 20,
-                }
-            },
-            {
-                id: 6,
-                name: '+ RNG',
-                cost: 10,
-                statModifications: {
-                    range: 50,
-                }
-            }
-        ]
-
-        // create 3 buttons in center of screen
-        const padding = 20;
-        const margin = 4;
-        const fontSize = 30;
-        cards.forEach((card, i) => {
-            // create button in center
-            const button = this.add.text(this.game.config.width / 2, this.game.config.height / 1.2, card.name, { fill: '#00ff00' });
-            button.setBackgroundColor('#000000');
-            button.setFontSize(fontSize);
-            button.setInteractive();
-            button.setWordWrapWidth(300);
-            button.setAlign('center');
-            button.setPadding(padding);
-
-            // move button to center
-            button.setScrollFactor(0);
-            button.setDepth(10);
-            button.width = 300;
-
-            // center the button
-            button.x = this.game.config.width / 2;
-            // move it pixels to the left or right depending on i
-            button.x -= (button.width + margin) * i;
-
-
-            // cost
-            const cost = this.add.text(button.x, button.y - 30, card.cost, { fill: '#00ccff' });
-            cost.setBackgroundColor('#000000');
-            cost.setFontSize(fontSize);
-            cost.setPadding(padding / 5);
-            cost.setScrollFactor(0);
-            cost.setDepth(10);
-
-            // on click
-            button.on('pointerdown', () => {
-                // if enough resource
-                if (this.currentBarAmount >= card.cost) {
-                    this.currentBarAmount -= card.cost;
-
-                    // if card is spawn unit
-                    if (card.name.includes('Spawn')) {
-                        this.createUnit(1, card.id);
-                    } else {
-                        this.buffUnits(1, card.statModifications);
-                    }
-                }
-            });
-
-            // on update
-            this.events.on('update', () => {
-                if (this.currentBarAmount >= card.cost) {
-                    button.setBackgroundColor('#000000');
-                } else {
-                    button.setBackgroundColor('#ff0000');
-                }
-            });
-        });
-    }
-
-    createButtons() {
-        const fontSize = 30;
-        const padding = 10;
-        const margin = 4;
-        // spawn p1unit button
-        const button = this.add.text(this.width / 2, this.height - 200, 'Spawn p1unit', { fill: '#00ff00' });
-        button.setBackgroundColor('#000000');
-        button.setPadding(padding);
-        button.setFontSize(fontSize);
-        button.setInteractive();
-        button.on('pointerdown', () => {
-            this.createUnit(1, 1);
-        });
-        button.x = 0
-        button.y = game.config.height - button.height;
-        button.setScrollFactor(0);
-        button.setDepth(10);
-
-        // spawn p2unit button
-        const button2 = this.add.text(this.width / 2, this.height - 200, 'Spawn p2unit', { fill: '#00ff00' });
-        button2.setBackgroundColor('#000000');
-        button2.setPadding(padding);
-        button2.setFontSize(fontSize);
-        button2.setInteractive();
-        button2.on('pointerdown', () => {
-            this.createUnit(2, 1);
-        });
-        button2.x = button.width + margin;
-        button2.y = game.config.height - button2.height;
-        button2.setScrollFactor(0);
-        button2.setDepth(10);
-
-        // buff button
-        const buffButton = this.add.text(this.width / 2, this.height - 200, 'Buff p1unit', { fill: '#00ff00' });
-        buffButton.setBackgroundColor('#000000');
-        buffButton.setPadding(padding);
-        buffButton.setFontSize(fontSize);
-        buffButton.setInteractive();
-        buffButton.on('pointerdown', () => {
-            this.buffUnits(1);
-        });
-        buffButton.x = button.width + button2.width + margin * 2
-        buffButton.y = game.config.height - buffButton.height;
-        buffButton.setScrollFactor(0);
-        buffButton.setDepth(10);
-
-        // buff button
-        const buffButton2 = this.add.text(this.width / 2, this.height - 200, 'Buff p2unit', { fill: '#00ff00' });
-        buffButton2.setBackgroundColor('#000000');
-        buffButton2.setPadding(padding);
-        buffButton2.setFontSize(fontSize);
-        buffButton2.setInteractive();
-        buffButton2.on('pointerdown', () => {
-            this.buffUnits(2);
-        });
-        buffButton2.x = button.width + button2.width + buffButton.width + margin * 3
-        buffButton2.y = game.config.height - buffButton2.height;
-        buffButton2.setScrollFactor(0);
-        buffButton2.setDepth(10);
+        this.ui = new Ui(this);
+        this.cards = new Cards(this);
+        
+        this.ui.createBar();
+        this.cards.createCards();
     }
 
     createUnit(playerN, unitId) {

@@ -9,6 +9,8 @@ class Unit {
         this.colors = scene.colors;
         this.p1units = scene.p1units;
         this.p2units = scene.p2units;
+        this.p1base = scene.p1base;
+        this.p2base = scene.p2base;
     }
 
     makeTower(unit) {
