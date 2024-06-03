@@ -20,7 +20,7 @@ class Unit {
         unit.body.setCircle(unit.radius);
         
 
-
+        unit.speed = 0;
         unit.range = unit.radius * 5;
         unit.attackSpeed = 1000;
         unit.attack = 45;
@@ -30,39 +30,52 @@ class Unit {
     }
 
     whiteLiner(unit) {
-        // const size = 40;
-
-        // unit is a white circle
-        // const art = this.add.circle(unit.x, unit.y, size / 2, 0xffffff);
-        // unit.art = art;
-
-
-        // HITBOX
-        // unit.body.setSize(size, size);
-        // unit.body.setCircle(size / 2);
-
-        // STATS
         unit.health = 30;
         unit.attack = 10;
         unit.attackSpeed = 800;
-        unit.range = 100;
-        unit.speed = 30;
+        unit.range = 500;
+        unit.speed = 25;
 
-        unit.size = 10;
+        unit.size = 20;
         unit.visionRange = 400;
 
         unit.body.debugShowBody = false;
     }
 
      tank(unit) {
-        // STATS
         unit.health = 500;
         unit.attack = 100;
-        unit.attackSpeed = 1000;
+        unit.attackSpeed = 100;
         unit.range = 30;
-        unit.speed = 250;
+        unit.speed = 25;
 
-        unit.size = 20;
+        unit.size = 30;
+        unit.visionRange = 400;
+
+        unit.body.debugShowBody = false;
+     }
+
+     longRanger(unit) {
+        unit.health = 100;
+        unit.attack = 20;
+        unit.attackSpeed = 1000;
+        unit.range = 400;
+        unit.speed = 20;
+
+        unit.size = 25;
+        unit.visionRange = 500;
+
+        unit.body.debugShowBody = false;
+     }
+
+     runner(unit) {
+        unit.health = 150;
+        unit.attack = 15;
+        unit.attackSpeed = 300;
+        unit.range = 50;
+        unit.speed = 150;
+
+        unit.size = 12;
         unit.visionRange = 400;
 
         unit.body.debugShowBody = false;

@@ -56,18 +56,20 @@ class Demo extends Phaser.Scene {
         this.time.addEvent({
             delay: 1000,
             callback: () => {
-                // const player = Math.random() > 0.5 ? 1 : 2;
-                // this.createUnit(player, 1);
+                let units = [1, 2, 3, 4];
+                let randomUnit = Phaser.Math.RND.pick(units);
+                const player = Math.random() > 0.5 ? 1 : 2;
+                this.createUnit(player, randomUnit);
 
-                this.createUnit(1, 1);
-                this.createUnit(2, 1);
+                // this.createUnit(1, randomUnit);
+                // this.createUnit(2, randomUnit);
             },
             loop: true
         });
 
         this.ui = new Ui(this);
         this.cards = new Cards(this);
-        
+
         this.ui.createBar();
         this.cards.createCards();
     }
@@ -91,6 +93,10 @@ class Demo extends Phaser.Scene {
             this.unit.whiteLiner(unit);
         } else if (unitId === 2) {
             this.unit.tank(unit);
+        } else if (unitId === 3) {
+            this.unit.longRanger(unit);
+        } else if (unitId === 4) {
+            this.unit.runner(unit);
         }
 
         // unit size
@@ -140,8 +146,8 @@ class Demo extends Phaser.Scene {
 
     buffUnits(playerN, statModifications) {
         const playerUnits = playerN === 1 ? this.p1units : this.p2units;
-        playerUnits.getChildren().forEach(unit => {
 
+        playerUnits.getChildren().forEach(unit => {
             if (statModifications) {
                 Object.keys(statModifications).forEach(stat => {
                     unit[stat] += statModifications[stat];
@@ -162,11 +168,6 @@ class Demo extends Phaser.Scene {
                     }
                 });
             }
-            // unit.attack += 5;
-            // unit.health += 100;
-            // unit.range += 150;
-            // unit.body.setSize(100, 100);
-            // unit.body.setCircle(50);
         });
     }
 
@@ -256,81 +257,149 @@ class Demo extends Phaser.Scene {
 
     unitCanMove(unit) {
         const playerUnits = unit.ownedBy === 1 ? this.p1units : this.p2units;
-        const { speed } = unit;
         const enemyBase = unit.ownedBy === 1 ? this.base.p2base : this.base.p1base;
+
         let angleToBase = Phaser.Math.Angle.Between(unit.x, unit.y, enemyBase.x, enemyBase.y);
-        let velocityX = speed * Math.cos(angleToBase);
-        let velocityY = speed * Math.sin(angleToBase);
+        let velocityX = null;
+        let velocityY = null;
 
-        // make unit not overlap other units
+        // push away from other units
         this.physics.add.collider(unit, playerUnits, (unit1, unit2) => {
-            if (unit1 === unit2) return;
-
-            angleToBase = Phaser.Math.Angle.Between(unit1.x, unit1.y, enemyBase.x, enemyBase.y);
-            velocityX = speed * Math.cos(angleToBase);
-            velocityY = speed * Math.sin(angleToBase);
+            velocityX = unit.speed * Math.cos(angleToBase);
+            velocityY = unit.speed * Math.sin(angleToBase);
         });
 
-        // every frame, move if not firing
+        // on update
         this.events.on('update', () => {
+            // do nothing if not active
             if (!unit.active) return;
 
+            // stop if firing
             if (unit.isFiring) {
                 unit.body.setVelocityX(0);
                 unit.body.setVelocityY(0);
-            } else {
-                // move toward closest unit
-                let closestUnit = null;
-                let closestDistance = unit.visionRange;
-                const enemyUnits = unit.ownedBy === 1 ? this.p2units : this.p1units;
-                enemyUnits.getChildren().forEach(unit2 => {
-                    if (!unit2.active) return;
-
-                    const distance = Phaser.Math.Distance.Between(unit.x, unit.y, unit2.x, unit2.y);
-                    if (distance < closestDistance) {
-                        closestDistance = distance;
-                        closestUnit = unit2;
-                    }
-                });
-                // if there is a closest unit, move towards it
-                if (closestUnit) {
-                    const angleToUnit = Phaser.Math.Angle.Between(unit.x, unit.y, closestUnit.x, closestUnit.y);
-                    velocityX = speed * Math.cos(angleToUnit);
-                    velocityY = speed * Math.sin(angleToUnit);
-                }
-
-                unit.body.setVelocityX(velocityX);
-                unit.body.setVelocityY(velocityY);
+                return;
             }
+
+            let velocityX = unit.speed * Math.cos(angleToBase);
+            let velocityY = unit.speed * Math.sin(angleToBase);
+
+            // find the closest unit
+            let closestUnit = null;
+            let closestDistance = unit.visionRange;
+            const enemyUnits = unit.ownedBy === 1 ? this.p2units : this.p1units;
+            enemyUnits.getChildren().forEach(unit2 => {
+                if (!unit2.active) return;
+
+                // if this unit is closest
+                const distance = Phaser.Math.Distance.Between(unit.x, unit.y, unit2.x, unit2.y);
+                if (distance < closestDistance) {
+                    closestDistance = distance;
+                    closestUnit = unit2;
+                }
+            });
+            // if there is a closest unit, move towards it
+            if (closestUnit) {
+                const angleToUnit = Phaser.Math.Angle.Between(unit.x, unit.y, closestUnit.x, closestUnit.y);
+                velocityX = unit.speed * Math.cos(angleToUnit);
+                velocityY = unit.speed * Math.sin(angleToUnit);
+            }
+
+            // move
+            unit.body.setVelocityX(velocityX);
+            unit.body.setVelocityY(velocityY);
         });
     }
 
+    giveUnitSwingTimer(unit) {
+        // create swingtimer
+        const swingTimer = this.add.rectangle(0, 0, 0, 4, 0xffffff);
+        swingTimer.setDepth(1);
+        swingTimer.setOrigin(0.5, 0.5);
+
+        this.events.on('update', () => {
+            if (!unit.active) {
+                swingTimer.destroy();
+                return;
+            }
+            swingTimer.x = unit.x;
+            swingTimer.y = unit.y - unit.radius - 1;
+        });
+
+        return swingTimer;
+    }
+
     unitCanAttack(unit) {
+        const swingTimer = this.giveUnitSwingTimer(unit);
         const enemyUnits = unit.ownedBy === 1 ? this.p2units : this.p1units;
+
+        let targetUnit = null;
 
         // on update
         this.events.on('update', () => {
             if (!unit.active) return;
             if (unit.isFiring) return;
+            if (targetUnit && !targetUnit.active) {
+                swingTimer.width = 0;
+                targetUnit = null;
+                unit.isFiring = false;
+                return;
+            }
 
-            // if overlapping enemyUnits, attack
-            let closestUnit = null;
-            this.physics.overlap(unit.rangeCircle, enemyUnits, (unit1, unit2) => {
+            // get target unit
+            if (!targetUnit) {
+                let closestEnemyUnit = null;
+                enemyUnits.getChildren().forEach(unit2 => {
+                    if (!unit2.active) return;
+
+                    const distance = Phaser.Math.Distance.Between(unit.x, unit.y, unit2.x, unit2.y);
+
+                    if (distance > unit.range) return;
+                    
+                    if (closestEnemyUnit === null || distance < closestEnemyUnit.distance) {
+                        closestEnemyUnit = unit2;
+                    }
+                });
+
+                if (closestEnemyUnit) {
+                    targetUnit = closestEnemyUnit;
+                }
+            }
+
+            if (targetUnit) {
                 unit.isFiring = true;
 
-                closestUnit = unit2;
-            });
+                // animate the swingtimer to 40px width
+                this.tweens.add({
+                    targets: swingTimer,
+                    width: 40,
+                    duration: unit.attackSpeed,
+                    ease: 'Linear',
+                    repeat: 0,
+                    onComplete: () => {
+                        if (!unit.active || !targetUnit.active) {
+                            unit.isFiring = false;
+                            swingTimer.width = 0;
+                            return;
+                        }
 
-            if (unit.isFiring && closestUnit) {
-                if (unit.typeId === 1) {
-                    this.attack.whiteLine(unit, closestUnit);
-                } else if (unit.typeId === 2) {
-                    this.attack.meleeAttack(unit, closestUnit);
-                }
+                        if (unit.typeId === 1) {
+                            this.attack.whiteLine(unit, targetUnit);
+                        } else if (unit.typeId === 2) {
+                            this.attack.meleeAttack(unit, targetUnit);
+                        } else if (unit.typeId === 3) {
+                            this.attack.longRangeAttack(unit, targetUnit);
+                        } else if (unit.typeId === 4) {
+                            this.attack.whiteLine(unit, targetUnit);
+                        }
 
 
-                this.attack.createWhiteSplash(closestUnit);
+                        this.attack.createWhiteSplash(targetUnit);
 
+                        // reset swingtimer
+                        swingTimer.width = 0;
+                    }
+                });
             }
         });
     }

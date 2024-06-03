@@ -18,47 +18,61 @@ class Cards {
     createCards() {
         const cards = [
             {
+                id: 0,
+                name: 'Spawn Runner',
+                cost: 5,
+                unitId: 4
+            },
+            {
                 id: 1,
                 name: 'Spawn White Liner',
                 cost: 25,
+                unitId: 1
             },
             {
                 id: 2,
                 name: 'Spawn Tank',
                 cost: 10,
+                unitId: 2,
             },
-            {
-                id: 3,
-                name: '+ ATK',
-                cost: 10,
-                statModifications: {
-                    attack: 20,
-                }
-            },
-            {
-                id: 4,
-                name: '+ HP',
-                cost: 10,
-                statModifications: {
-                    health: 100,
-                }
-            },
-            {
-                id: 5,
-                name: '+ SPD',
-                cost: 10,
-                statModifications: {
-                    speed: 20,
-                }
-            },
-            {
-                id: 6,
-                name: '+ RNG',
-                cost: 10,
-                statModifications: {
-                    range: 50,
-                }
-            }
+            // {
+            //     id: 3,
+            //     name: 'Spawn Long Ranger',
+            //     cost: 10,
+            //     unitId: 3,
+            // },
+            // {
+            //     id: 4,
+            //     name: '+ ATK',
+            //     cost: 10,
+            //     statModifications: {
+            //         attack: 20,
+            //     }
+            // },
+            // {
+            //     id: 5,
+            //     name: '+ HP',
+            //     cost: 10,
+            //     statModifications: {
+            //         health: 100,
+            //     }
+            // },
+            // {
+            //     id: 6,
+            //     name: '+ SPD',
+            //     cost: 10,
+            //     statModifications: {
+            //         speed: 200,
+            //     }
+            // },
+            // {
+            //     id: 7,
+            //     name: '+ RNG',
+            //     cost: 10,
+            //     statModifications: {
+            //         range: 500,
+            //     }
+            // }
         ]
 
         // create 3 buttons in center of screen
@@ -97,7 +111,6 @@ class Cards {
                 button.x - button.width / 2 + padding,
                 button.y - button.height / 2 + padding,
                 card.name,
-                { fill: '#00ff00' }
             );
             buttonText.setBackgroundColor('#000000');
             buttonText.setFontSize(fontSize);
@@ -128,7 +141,7 @@ class Cards {
 
                     // if card is spawn unit
                     if (card.name.includes('Spawn')) {
-                        this.scene.createUnit(1, card.id);
+                        this.scene.createUnit(1, card.unitId);
                     } else {
                         this.scene.buffUnits(1, card.statModifications);
                     }
