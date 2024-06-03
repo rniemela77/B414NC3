@@ -74,7 +74,53 @@ class Demo extends Phaser.Scene {
         this.cards.createCards();
     }
 
-    createUnit(playerN, unitId) {
+    createBuilding(playerN, unitId) {
+        const building = this.add.rectangle(0, 0, 50, 50, 0xffffff);
+        building.isPlaced = false;
+        building.setAlpha(0.5);
+
+        // on mousemove
+        this.input.on('pointermove', () => {
+            if (building.isPlaced) return;
+            building.x = this.input.mousePointer.x;
+            building.y = this.input.mousePointer.y;
+        });
+
+        // on click
+        this.input.on('pointerdown', () => {
+            if (building.isPlaced) return;
+            building.isPlaced = true;
+            building.setAlpha(1);
+            building.ownedBy = playerN;
+            building.unitId = unitId;
+
+            // GROUP
+            if (building.ownedBy === 1) {
+                this.p1units.add(building);
+            } else {
+                this.p2units.add(building);
+            }
+
+            // give building stats
+            if (unitId === 4) {
+                this.unit.barracks(building);
+            }
+
+            // spawn units
+            this.time.addEvent({
+                delay: 1000,
+                callback: () => {
+                    this.createUnit(playerN, building.unitId, { x: building.x, y: building.y });
+                },
+                loop: true
+            });
+
+            this.giveUnitHealthbar(building);
+        });
+
+    }
+
+    createUnit(playerN, unitId, { x, y } = {}) {
         const unit = this.add.circle(0, 0, 5, 0xffffff);
 
         unit.typeId = unitId;
@@ -110,17 +156,22 @@ class Demo extends Phaser.Scene {
 
 
         // SPAWN
-        const playerBaseLocation = unit.ownedBy === 1 ? this.base.p1base : this.base.p2base;
-        unit.x = playerBaseLocation.x;
-        unit.y = playerBaseLocation.y;
-
-        // if p1unit, move to right
-        if (unit.ownedBy === 1) {
-            // unit.x += 100;
-            unit.x += Math.random() * 100 + 100;
+        if (x && y) {
+            unit.x = x;
+            unit.y = y;
         } else {
-            // unit.x -= 100;
-            unit.x -= Math.random() * 100 + 100;
+            const playerBaseLocation = unit.ownedBy === 1 ? this.base.p1base : this.base.p2base;
+            unit.x = playerBaseLocation.x;
+            unit.y = playerBaseLocation.y;
+
+            // if p1unit, move to right
+            if (unit.ownedBy === 1) {
+                // unit.x += 100;
+                unit.x += Math.random() * 100 + 100;
+            } else {
+                // unit.x -= 100;
+                unit.x -= Math.random() * 100 + 100;
+            }
         }
 
         // RANGE
@@ -224,23 +275,12 @@ class Demo extends Phaser.Scene {
                 unit.health = 0;
             }
             if (unit.active) {
-
                 // show red for damage taken
                 unit.healthbarDamage.clear();
                 if (unit.health < currentHealth) {
                     unit.healthbarDamage.fillStyle(0xff0000, 1);
                     unit.healthbarDamage.fillRect(unit.x - currentHealth / 5, unit.y - unit.body.height / 1.5, 40 * (currentHealth / 100), 5);
                     unit.healthbarDamage.setDepth(1);
-
-                    // this.time.addEvent({
-                    // delay: 200,
-                    // callback: () => {
-                    // unit.healthbarDamage.clear();
-                    // currentHealth = unit.health;
-                    // }
-                    // });
-
-                    unit.healthbarDamage.fillRect(unit.x - unit.health / 5, unit.y - unit.body.height / 1.5, 40 * (unit.health / 100), 5);
                 }
 
                 // update current health
@@ -355,7 +395,7 @@ class Demo extends Phaser.Scene {
                     const distance = Phaser.Math.Distance.Between(unit.x, unit.y, unit2.x, unit2.y);
 
                     if (distance > unit.range) return;
-                    
+
                     if (closestEnemyUnit === null || distance < closestEnemyUnit.distance) {
                         closestEnemyUnit = unit2;
                     }

@@ -80,6 +80,19 @@ class Unit {
 
         unit.body.debugShowBody = false;
      }
+
+     barracks(unit) {
+        unit.health = 500;
+        unit.attack = 0;
+        unit.attackSpeed = 0;
+        unit.range = 0;
+        unit.speed = 0;
+
+        unit.size = 40;
+        unit.visionRange = 400;
+
+        unit.body.debugShowBody = false;
+     }
 }
 
 export default Unit;

@@ -35,6 +35,13 @@ class Cards {
                 cost: 10,
                 unitId: 2,
             },
+            {
+                id: 8,
+                name: 'Build Runner Barracks',
+                cost: 10,
+                unitId: 4,
+                building: true
+            }
             // {
             //     id: 3,
             //     name: 'Spawn Long Ranger',
@@ -142,7 +149,15 @@ class Cards {
                     // if card is spawn unit
                     if (card.name.includes('Spawn')) {
                         this.scene.createUnit(1, card.unitId);
-                    } else {
+                    } else if (card.building) {
+                        this.time.addEvent({
+                            delay: 500,
+                            callback: () => {
+                                this.scene.createBuilding(1, card.unitId);
+                            }
+                        });
+                    }
+                    else {
                         this.scene.buffUnits(1, card.statModifications);
                     }
                 }
