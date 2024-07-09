@@ -1,5 +1,6 @@
 // Description: A game where two units move around and attack each other
 import UnitHealth from "./scripts/unit-health.js";
+import Controls from "./scripts/controls.js";
 
 class Demo extends Phaser.Scene {
     preload() {
@@ -31,6 +32,7 @@ class Demo extends Phaser.Scene {
             }
         ];
 
+
         this.p1shields = this.physics.add.group();
         this.p2shields = this.physics.add.group();
 
@@ -52,6 +54,10 @@ class Demo extends Phaser.Scene {
         // Create healthbars
         this.unitHealth = new UnitHealth(this);
         this.unitHealth.giveHealthbars(this.p1unit, this.p2unit);
+
+        this.controls = new Controls(this);
+        this.controls.createControls(this.p1unit, actions);
+        this.controls.createControls(this.p2unit, actions);
 
         const doAction = (unit, txt, targetHealth, unitHpTxt) => {
             // pick a random action based on frequency
