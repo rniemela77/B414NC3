@@ -6,25 +6,33 @@ class Controls {
 
     createControls(player, actions) {
         // buttons are near top right
-        const buttonLocation = { 
-            x: 500, 
+        const buttonLocation = {
+            x: 500,
             y: player === this.scene.p1unit ? 50 : 300
         };
 
-        console.log(buttonLocation);
-        // create controls for player
-        // for each action
-        actions.forEach(action => {
-            // if the action has a distance
-            if (action.distance) {
-                const distanceOptions = [-50, 50];
+        const options = [-0.1, 0.1]
 
-                distanceOptions.forEach(distance => {
-                // create a button that will add 50 to distance
+        // create 2 controls per action
+        actions.forEach(action => {
+            // place text with action name
+            const actionName = this.scene.add.text(
+                buttonLocation.x - 150,
+                buttonLocation.y,
+                action.action,
+                {
+                    fontSize: 24,
+                    backgroundColor: player === this.scene.p1unit
+                        ? '#0000ff'
+                        : '#ff0000',
+                }
+            );
+
+            options.forEach(option => {
                 let button = this.scene.add.text(
                     buttonLocation.x,
                     buttonLocation.y,
-                    `${action.action}(${action.distance}) ${distance}`,
+                    option,
                     {
                         fontSize: 24,
                         backgroundColor: player === this.scene.p1unit
@@ -33,23 +41,26 @@ class Controls {
                     }
                 );
 
+                // button click
                 button.setInteractive();
-                // make text deleteable
                 button.on('pointerdown', () => {
-                    action.distance += distance;
-
-                    // clear text
-                    button.setText('');
-
-                    // set new text
-                    button.setText(`${action.action}: ${action.distance}`);
+                    if (action.distance) {
+                        action.distance += option * 100;
+                    }
+                    
+                    if (action.damage || action.damage === 0) {
+                        action.damage += option * 10;
+                    }
                 });
 
-                buttonLocation.y += 40;
-            });
-            }
+                // button text
+                this.events.on('update', () => {
+                    button.setText(`(${action.distance || action.damage}) ${option}`);
+                });
 
-            // if the action has damage
+                // place the next action underneath
+                buttonLocation.y += button.height;
+            });
         });
     }
 }

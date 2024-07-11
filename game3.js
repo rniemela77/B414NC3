@@ -31,6 +31,9 @@ class Demo extends Phaser.Scene {
                 frequency: 0.1
             }
         ];
+        // give a copy to p1
+        this.p1Actions = actions.map(a => ({ ...a }));
+        this.p2Actions = actions.map(a => ({ ...a }));
 
 
         this.p1shields = this.physics.add.group();
@@ -56,11 +59,12 @@ class Demo extends Phaser.Scene {
         this.unitHealth.giveHealthbars(this.p1unit, this.p2unit);
 
         this.controls = new Controls(this);
-        this.controls.createControls(this.p1unit, actions);
-        this.controls.createControls(this.p2unit, actions);
+        this.controls.createControls(this.p1unit, this.p1Actions);
+        this.controls.createControls(this.p2unit, this.p2Actions);
 
         const doAction = (unit, txt, targetHealth, unitHpTxt) => {
             // pick a random action based on frequency
+            const actions = unit === this.p1unit ? this.p1Actions : this.p2Actions;
             let action = Phaser.Math.RND.weightedPick(actions.map(a => a.action), actions.map(a => a.frequency));
             let { distance, damage } = actions.find(a => a.action === action);
 
