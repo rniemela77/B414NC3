@@ -1,6 +1,7 @@
 // Description: A game where two units move around and attack each other
-import UnitHealth from "./scripts/unit-health.js";
 import Controls from "./scripts/controls.js";
+import Actions from "./scripts/actions.js";
+import Unit from "./scripts/unit.js";
 
 class Demo extends Phaser.Scene {
     preload() {
@@ -8,95 +9,40 @@ class Demo extends Phaser.Scene {
     }
 
     create() {
-        const actions = [
-            {
-                action: 'moveLeft',
-                movement: -1,
-                distance: 220,
-                frequency: 0.2,
-            },
-            {
-                action: 'moveRight',
-                movement: 1,
-                distance: 220,
-                frequency: 0.2,
-            },
-            {
-                action: 'attack',
-                damage: 2,
-                frequency: 0.4
-            },
-            {
-                action: 'defend',
-                frequency: 0.1
-            }
-        ];
-        // give a copy to p1
-        this.p1Actions = actions.map(a => ({ ...a }));
-        this.p2Actions = actions.map(a => ({ ...a }));
+        this.width = width;
+        this.height = height;
 
+        this.actions = new Actions(this);
+        this.actions.createActions();
 
         this.p1shields = this.physics.add.group();
         this.p2shields = this.physics.add.group();
 
-
-        // Action history
-        this.p1actionText = this.add.text(10, 70, `P1:`, { fontSize: 24 });
-        this.p2actionText = this.add.text(10, 100, `P2:`, { fontSize: 24 });
-
         // Create unit
-        this.p1unit = this.physics.add.sprite(width / 2, height / 2, 'particle');
-        this.p1unit.body.setCircle(25);
-        this.p1unit.setTint(0x0000ff);
-        this.p2unit = this.physics.add.sprite(width / 2, height / 2 + 100, 'particle');
-        this.p2unit.body.setCircle(25);
-        this.p2unit.setTint(0xff0000);
-        this.p1unit.setDrag(100);
-        this.p2unit.setDrag(100);
+        this.unit1 = new Unit(this, 1);
+        this.unit2 = new Unit(this, 2);
 
-        // Create healthbars
-        this.unitHealth = new UnitHealth(this);
-        this.unitHealth.giveHealthbars(this.p1unit, this.p2unit);
+        // console.log(this.unit1.unit);
+        // this.controls = new Controls(this);
 
-        this.controls = new Controls(this);
-        this.controls.createControls(this.p1unit, this.p1Actions);
-        this.controls.createControls(this.p2unit, this.p2Actions);
+        // this.controls.createControls(this.p1unit, this.p1Actions);
+        // this.controls.createControls(this.p2unit, this.p2Actions);
 
-        const doAction = (unit, txt, targetHealth, unitHpTxt) => {
+        const doAction = (unit, actions, target) => {
             // pick a random action based on frequency
-            const actions = unit === this.p1unit ? this.p1Actions : this.p2Actions;
-            let action = Phaser.Math.RND.weightedPick(actions.map(a => a.action), actions.map(a => a.frequency));
-            let { distance, damage } = actions.find(a => a.action === action);
+            let action = Phaser.Math.RND.weightedPick(
+                actions.map(a => a), // actions
+                actions.map(a => a.frequency) // frequencies
+            );
 
-            let target = unit === this.p1unit ? this.p2unit : this.p1unit;
-
-            let newText = '';
-
-            if (action === 'moveLeft' || action === 'moveRight') {
-                newText = action;
-
-                const centerX = unit === this.p1unit ? this.p2unit.x : this.p1unit.x;
-                const centerY = unit === this.p1unit ? this.p2unit.y : this.p1unit.y;
-
-                // find current angle between unit and center
-                let angle = Phaser.Math.Angle.Between(unit.x, unit.y, centerX, centerY);
-
-                // move angle by 15 degrees
-                angle += action === 'moveLeft' ? 9 : -9;
-                const x = centerX + Math.cos(angle) * distance;
-                const y = centerY + Math.sin(angle) * distance;
-
-                this.tweens.add({
-                    targets: unit,
-                    x: x,
-                    y: y,
-                    duration: 1000,
-                    ease: 'Power2',
-                    yoyo: false,
-                    repeat: 0,
-                });
+            if (action.name === 'moveLeft' || action.name === 'moveRight') {
+                unit.move(
+                    action.name === 'moveLeft' ? -1 : 1,
+                    action.distance,
+                    target.unit
+                );
             } else if (action === 'attack') {
-                newText = `*attack*`;
+                return;
 
                 // create red line
                 let graphics = this.add.graphics();
@@ -140,14 +86,6 @@ class Demo extends Phaser.Scene {
                             onComplete: () => {
                                 bullet.destroy();
                             }
-                        });
-
-                        // if bullet collides with shield
-                        let enemyShield = unit === this.p1unit ? this.p2shields : this.p1shields;
-                        this.physics.add.collider(bullet, enemyShield, (bullet, shield) => {
-                            bullet.destroy();
-
-                            shield.destroy();
                         });
 
                         // if bullet collides with target
@@ -194,8 +132,7 @@ class Demo extends Phaser.Scene {
             }
             // DEFEND
             else if (action === 'defend') {
-                newText = `*defend*`;
-
+                return;
                 // create shield around unit
                 let shield = this.add.circle(unit.x, unit.y, 70, 0x5555ff);
                 shield.setAlpha(0.2);
@@ -207,7 +144,7 @@ class Demo extends Phaser.Scene {
 
 
                 // add to shield group
-                if (unit === this.p1unit) {
+                if (unit === this.unit1) {
                     this.p1shields.add(shield);
                 } else {
                     this.p2shields.add(shield);
@@ -237,19 +174,21 @@ class Demo extends Phaser.Scene {
                     loop: false,
                 });
             }
-
-            txt.setText(txt.text + '\n' + newText);
         }
 
         let turn = 0;
         // every 1s
         this.time.addEvent({
-            delay: 500,
+            delay: 300,
             callback: () => {
+                doAction(this.unit1, this.actions.getActions(1), this.unit2)
+                doAction(this.unit2, this.actions.getActions(2), this.unit1)
+
                 // if (turn % 2 === 0) {
-                doAction(this.p1unit, this.p1actionText, this.p2health, this.p1healthText)
+                // doAction(this.unit.p1unit, this.unit.p2health, this.unit.p1healthText)
+
                 // } else {
-                doAction(this.p2unit, this.p2actionText, this.p1health, this.p2healthText)
+                // doAction(this.unit.p2unit, this.unit.p1health, this.unit.p2healthText)
                 // }
 
                 turn++;
