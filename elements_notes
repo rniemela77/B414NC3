@@ -1,0 +1,16 @@
+1. Air > Earth
+Interaction: Air particles erode or push earth particles.
+Visualization: Air particles move towards earth particles and cause them to scatter or break apart.
+Logic: When air particles collide with earth particles, the earth particles disperse or change position.
+2. Earth > Water
+Interaction: Earth particles absorb or block water particles.
+Visualization: Water particles stop moving or get absorbed when they come into contact with earth particles.
+Logic: When water particles collide with earth particles, they disappear, get absorbed, or stop moving.
+3. Water > Fire
+Interaction: Water particles extinguish fire particles.
+Visualization: Water particles move towards fire particles, and the fire particles vanish.
+Logic: When water particles collide with fire particles, the fire particles disappear or turn into steam.
+4. Fire > Air
+Interaction: Fire particles consume or strengthen with air particles.
+Visualization: Fire particles grow larger or multiply when they come into contact with air particles.
+Logic: When fire particles collide with air particles, the fire particles expand or multiply.
