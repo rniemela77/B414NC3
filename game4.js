@@ -9,7 +9,80 @@ class Demo extends Phaser.Scene {
 
         // this.createParticleGroup();
 
-        this.createHourglassParticles();
+        // this.createHourglassParticles();
+
+        // create a group of particles
+        // let flowers = this.physics.add.group({
+        //     key: 'particle',
+        //     repeat: 10,
+        //     setXY: {
+        //         x: 100,
+        //         y: 100,
+        //         stepX: 50,
+        //         stepY: 50,
+        //     },
+        //     bounceX: 1,
+        //     bounceY: 1,
+        //     collideWorldBounds: true,
+        // });
+
+
+
+
+        // create a group of flowers
+        this.flowers = this.physics.add.group({
+            // key: 'particle',
+            // repeat: 0,
+            // setXY: {
+            //     x: 100,
+            //     y: 100,
+            //     stepX: 50,
+            //     stepY: 50,
+            // },
+            bounceX: 1,
+            bounceY: 1,
+            collideWorldBounds: true,
+            // setCircle: 25,
+        });
+        this.flowers.children.entries.forEach((flower) => {
+            flower.setCircle(25);
+        });
+        this.physics.add.collider(this.flowers, this.flowers);
+
+        // create flower on click
+        this.input.on('pointerdown', (pointer) => {
+            this.createFloatingFlower(pointer);
+        });
+    }
+
+    createFloatingFlower(pointer) {
+        const flower = this.physics.add.image(pointer.x, pointer.y, 'particle')
+            .setBounce(1, 1)
+            .setScale(2)
+            .setCircle(25)
+            .setCollideWorldBounds(true);
+
+        // add it to the group
+        this.flowers.add(flower);
+
+
+        // make it bounce off other flowers
+        this.physics.add.collider(this.flowers, flower);
+
+        const cursor = this.add.image(0, 0, 'particle').setVisible(false);
+
+        let moving = false;
+
+        this.input.on('pointerup', (pointer2) => {
+            if (moving) return;
+
+            // shower cursor
+            cursor.copyPosition(pointer2).setVisible(true);
+
+            this.physics.moveToObject(flower, cursor, 400);
+
+            moving = true;
+        });
     }
 
     createRisingLine() {
@@ -105,8 +178,8 @@ class Demo extends Phaser.Scene {
             bounceX: 0.5,  // Set bounce on X axis
             bounceY: 0.5,  // Set bounce on Y axis
             // Set drag on X and Y axis
-            dragX: 5, // this makes the particles slow down over time
-            dragY: 5, // higher number = faster slow down
+            dragX: 0, // this makes the particles slow down over time
+            dragY: 0, // higher number = faster slow down
 
             collideWorldBounds: true,  // Ensure particles collide with world bounds
             gravityY: 0, // Set default gravity for all particles
@@ -203,11 +276,15 @@ class Demo extends Phaser.Scene {
 let width = window.innerWidth * window.devicePixelRatio;
 let height = window.innerHeight * window.devicePixelRatio;
 
+// smaller one, square
+let smaller = width < height ? width : height;
+
+
 var config = {
     type: Phaser.AUTO,
     parent: 'phaser-example',
-    width: width,
-    height: height,
+    width: smaller,
+    height: smaller,
     scale: {
         mode: Phaser.Scale.FIT,
         autoCenter: Phaser.Scale.CENTER_BOTH,
