@@ -5,6 +5,171 @@ class Demo extends Phaser.Scene {
 
 
     create() {
+        this.matter.world.setGravity(0, 0.5);
+        this.matter.world.setBounds(0, 0, this.sys.game.config.width, this.sys.game.config.height);
+
+        // Create a ball that will bounce off walls
+        this.ball = this.matter.add.image(420, 100, 'particle', null, {
+            shape: 'circle',
+            friction: 0,        // No friction
+            frictionAir: 0,     // No air resistance
+            restitution: 1,     // Perfectly elastic collision
+            density: 1,         // Control mass as needed
+            mass: 1,            // Set mass for the ball
+        });
+        this.ball.setVelocity(1, 1);
+
+        this.pointer = null;
+
+        this.input.on('pointerdown', (pointer) => {
+            if (this.pointer) {
+                this.pointer.destroy();
+                this.pointer = null;
+                this.matter.world.removeConstraint(this.constrainty);
+                return;
+            }
+            this.pointer = this.matter.add.image(pointer.x, pointer.y, 'ball', null, {
+                shape: 'circle',
+                friction: 1,
+                restitution: 0.6
+            });
+
+            this.pointer.setIgnoreGravity(true);
+            this.pointer.setStatic(true);
+
+            let distance = Phaser.Math.Distance.Between(this.ball.x, this.ball.y, pointer.x, pointer.y);
+            this.constrainty = this.matter.add.constraint(this.ball, this.pointer, distance, 0.5, {
+                stiffness: 0.1,  // Increase stiffness for more responsive swings
+                damping: 0.1,  // Add damping to reduce jitteriness
+            });
+        });
+
+        // on mousemove
+        this.input.on('pointermove', (pointer) => {
+            if (this.pointer) {
+                this.pointer.setPosition(pointer.x, pointer.y);
+            }
+        });
+
+
+        
+        
+        
+        
+        // LINE
+        this.liney = new Phaser.Geom.Line(0, 0, 0, 0);
+        this.graphics = this.add.graphics();
+        this.events.on('update', () => {
+            this.graphics.clear();
+            if (this.pointer) {
+                this.liney.setTo(this.ball.x, this.ball.y, this.pointer.x, this.pointer.y);
+                this.graphics.lineStyle(2, 0xffffff, 1);
+                this.graphics.strokeLineShape(this.liney);
+            }
+        });
+
+        // create cyan square area
+        this.lane = this.add.graphics();
+        this.lane.fillStyle(0x00ffff, 1);
+        this.lane.fillRect(width * 0.2, 0, width * 0.55, height);
+        this.lane.setDepth(-1);
+        this.lane.setAlpha(0.2);
+
+        // move the lane
+        // this.tweens.add({
+        //     targets: this.lane,
+        //     x: width * 0.1,
+        //     scaleX: 0.9,
+        //     duration: 1000,
+        //     yoyo: true,
+        //     repeat: -1,
+        //     ease: 'Sine.easeInOut',
+        // });
+
+        // every 0.2s
+        this.timerAmount = 1;
+        this.timerDisplay = this.add.text(10, 50, 'Time: 0', {
+            font: '32px Arial',
+            fill: '#ffffff',
+        });
+        this.scoreDisplay = this.add.text(10, 10, 'Score: 0', {
+            font: '32px Arial',
+            fill: '#ffffff',
+        });
+        this.score = 1;
+        this.scorePctDisplay = this.add.text(width - 150, 90, 'Score: 0%', {
+            font: '32px Arial',
+            fill: '#ffffff',
+        });
+        this.time.addEvent({
+            delay: 200,
+            callback: () => {
+                if (this.pointer) {
+                    this.scorePctDisplay.setText('Score: ' + Math.floor(this.score / this.timerAmount * 100) + '%');
+
+                    this.timerAmount++;
+                    this.timerDisplay.setText('Time: ' + this.timerAmount);
+
+                    // check the lane
+                    if (this.pointer.x > width * 0.2 && this.pointer.x < width * 0.75) {
+                        this.score++;
+                        this.scoreDisplay.setText('Score: ' + this.score);
+                    }
+
+                }
+            },
+            loop: true,
+        });
+        this.time.addEvent({
+            delay: 200,
+            callback: () => {
+                //
+            }
+        });
+
+
+
+        // Create a square that will move and bounce around the screen
+        // const square = this.matter.add.image(200, 200, 'square', null, {
+        //     shape: {
+        //         type: 'rectangle',
+        //         width: 30,   // Set the size of the square
+        //         height: 30,
+        //     },
+        //     friction: 0,        // No friction
+        //     frictionAir: 0,     // No air resistance
+        //     restitution: 1,     // Perfectly elastic collision
+        //     angle: 45,          // Set the initial angle of the square
+        // density: 1,         // Control mass as needed
+        // mass: 1,            // Set mass for the square
+
+        // }).setScale(5).setOrigin(0.5).setBounce(1, 1);
+
+        // Initial velocity to make it move
+        // square.setVelocity(4, 4);
+
+
+
+        // if square touches world bounds, destroy it
+
+
+        // this.square.setIgnoreGravity(true);
+
+        // add a constraint between the square and ballA
+        // this.constrainty2 = this.matter.add.constraint(ballA, this.square, 100, 0.5, {
+        //     stiffness: 0.0001,  // Increase stiffness for more responsive swings
+        //     damping: 0.001,  // Add damping to reduce jitteriness
+        // });
+
+        // set velocity on square
+        // this.square.setVelocity(20, 10)
+        //     .setFriction(0, 0)
+        //     .setBounce(1, 1)
+        //     .setIgnoreGravity(true)
+        //     .setFrictionAir(0, 0);
+
+
+
         // this.createRisingLine();
 
         // this.createParticleGroup();
@@ -28,6 +193,7 @@ class Demo extends Phaser.Scene {
 
 
 
+        return;
 
         // create a group of flowers
         this.flowers = this.physics.add.group({
@@ -82,6 +248,57 @@ class Demo extends Phaser.Scene {
             this.physics.moveToObject(flower, cursor, 400);
 
             moving = true;
+        });
+    }
+
+    createSwingingGame() {
+        this.matter.world.setGravity(0, 2);
+        this.matter.world.setBounds();
+
+        const ballA = this.matter.add.image(420, 100, 'ball', null, {
+            shape: 'circle',
+            friction: 0,
+            restitution: 1,
+            density: 2,
+            mass: 0.01,
+        });
+
+        this.input.on('pointerdown', (pointer) => {
+            this.ballB = this.matter.add.image(pointer.x, pointer.y, 'ball', null, {
+                shape: 'circle',
+                friction: 1,
+                restitution: 0.6
+            });
+
+            this.ballB.setIgnoreGravity(true);
+            this.ballB.setStatic(true);
+
+            let distance = Phaser.Math.Distance.Between(ballA.x, ballA.y, pointer.x, pointer.y);
+            this.constrainty = this.matter.add.constraint(ballA, this.ballB, distance, 0.5, {
+                stiffness: 0.1,  // Increase stiffness for more responsive swings
+                damping: 0.1,  // Add damping to reduce jitteriness
+            });
+        });
+
+        this.input.on('pointerup', () => {
+            ballA.setIgnoreGravity(false);
+
+            // Destroy the constraint to release the ball
+            if (this.constrainty) {
+                this.matter.world.removeConstraint(this.constrainty);
+                this.constrainty = null;
+            }
+
+            this.ballB.destroy();
+
+        });
+
+        // Add an updraft every few seconds
+        this.time.addEvent({
+            delay: 1000,  // Every 2 seconds
+            callback: () => {
+            },
+            loop: true,
         });
     }
 
@@ -283,18 +500,20 @@ let smaller = width < height ? width : height;
 var config = {
     type: Phaser.AUTO,
     parent: 'phaser-example',
-    width: smaller,
-    height: smaller,
+    width: width,
+    height: height,
     scale: {
         mode: Phaser.Scale.FIT,
         autoCenter: Phaser.Scale.CENTER_BOTH,
     },
     physics: {
-        default: 'arcade',
-        arcade: {
-            gravity: { y: 0 },
-            debug: true,
-        },
+        // default: 'arcade',
+        default: 'matter',
+
+        // arcade: {
+        //     gravity: { y: 0 },
+        //     debug: true,
+        // },
     },
     scene: Demo,
     backgroundColor: '#808080',
